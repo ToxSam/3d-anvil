@@ -8,7 +8,7 @@ import { NFTCard } from '@/components/NFTCard';
 import { WalletButton } from '@/components/WalletButton';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
 import Link from 'next/link';
-import { EXPLORER_URL, SOLANA_NETWORK, isDropCollection, tryFetchJsonWithIrysGateway, resolveArweaveUrl } from '@/lib/constants';
+import { EXPLORER_URL, SOLANA_NETWORK, isDropCollection, isLocalhostUrl, tryFetchJsonWithIrysGateway, resolveArweaveUrl } from '@/lib/constants';
 import { getOwnerAssetsInCreationOrder } from '@/lib/das';
 
 const PAGE_SIZE = 20;
@@ -238,11 +238,18 @@ export default function DashboardPage() {
         owner: wallet.publicKey,
       });
 
+      // Drop NFTs whose metadata URI points at localhost — these were minted
+      // during local dev and can never be fetched from the deployed site.
+      const fetchableNfts = allNfts.filter((nft: any) => {
+        const uri = nft.uri as string | undefined;
+        return !uri || !isLocalhostUrl(uri);
+      });
+
       // Load metadata in small batches (3 at a time)
       const BATCH_SIZE = 3;
       const resolvedNfts: any[] = [];
-      for (let i = 0; i < allNfts.length; i += BATCH_SIZE) {
-        const batch = allNfts.slice(i, i + BATCH_SIZE);
+      for (let i = 0; i < fetchableNfts.length; i += BATCH_SIZE) {
+        const batch = fetchableNfts.slice(i, i + BATCH_SIZE);
         const results = await Promise.allSettled(
           batch.map(async (nft: any) => {
             try {

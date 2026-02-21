@@ -11,6 +11,8 @@ const SECTIONS = [
   { id: 'collectors', label: 'For Collectors' },
   { id: 'technology', label: 'Technology' },
   { id: 'formats', label: 'Supported Formats' },
+  { id: 'open-source', label: 'Open Source' },
+  { id: 'developers', label: 'For Developers' },
   { id: 'expect', label: 'What to Expect' },
   { id: 'faq', label: 'FAQ' },
 ] as const;
@@ -530,9 +532,14 @@ export default function AboutPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-6 rounded-lg bg-gray-50/60 dark:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30">
                   <div className="flex items-center gap-3 mb-4">
-                    <span className="text-body-lg font-bold font-mono text-orange-500 dark:text-orange-400">
+                    <a
+                      href="https://www.khronos.org/gltf/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-body-lg font-bold font-mono text-orange-500 dark:text-orange-400 hover:underline"
+                    >
                       .glb
-                    </span>
+                    </a>
                     <span className="text-small text-gray-500 dark:text-gray-400">
                       GL Transmission Format (Binary)
                     </span>
@@ -556,9 +563,14 @@ export default function AboutPage() {
 
                 <div className="p-6 rounded-lg bg-gray-50/60 dark:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30">
                   <div className="flex items-center gap-3 mb-4">
-                    <span className="text-body-lg font-bold font-mono text-orange-500 dark:text-orange-400">
+                    <a
+                      href="https://vrm.dev/en/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-body-lg font-bold font-mono text-orange-500 dark:text-orange-400 hover:underline"
+                    >
                       .vrm
-                    </span>
+                    </a>
                     <span className="text-small text-gray-500 dark:text-gray-400">
                       VR Model (Humanoid Avatars)
                     </span>
@@ -578,6 +590,201 @@ export default function AboutPage() {
                       Supported by: VRChat, Cluster, VSeeFace, three-vrm,
                       PixivVRM, and the growing VRM ecosystem.
                     </p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Open Source */}
+            <section id="open-source">
+              <h2 className="text-title font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-6">
+                Open Source &amp; CC0
+              </h2>
+              <div className="space-y-4 text-body text-gray-600 dark:text-gray-400 leading-relaxed mb-8">
+                <p>
+                  3D Anvil is fully{' '}
+                  <a
+                    href="https://github.com/ToxSam/3d-anvil"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-orange-500 dark:text-orange-400 hover:underline"
+                  >
+                    open source on GitHub
+                  </a>{' '}
+                  and released under the CC0 license — meaning anyone can fork
+                  it, build on it, host their own copy, or integrate the NFT
+                  infrastructure into their own project. No restrictions, no
+                  royalties, no permission needed.
+                </p>
+                <p>
+                  The real beauty of how this works is that{' '}
+                  <strong className="text-gray-900 dark:text-gray-100">
+                    3D Anvil doesn&apos;t deploy any contracts itself
+                  </strong>
+                  . Every collection and drop you create is your own — deployed
+                  by your wallet, owned by you. 3D Anvil isn&apos;t a custodian of
+                  anything you make. It&apos;s just a beautiful interface that
+                  connects you to Solana programs that have been running
+                  reliably for years (Metaplex, Candy Machine).
+                </p>
+                <p>
+                  When you use 3D Anvil, you&apos;re paying Solana&apos;s
+                  network fees and Arweave&apos;s storage costs — not a
+                  platform fee to the project. 3D Anvil&apos;s only cost is a minimal hosting bill to
+                  keep the UX running. Since everything is CC0, anyone in the
+                  community can fork this project, host their own copy, or take
+                  over hosting if the maintainers step back. No single point of failure.
+                </p>
+              </div>
+
+              <div className="p-5 rounded-lg bg-gray-50/60 dark:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30 mb-4">
+                <h3 className="text-body font-bold text-gray-900 dark:text-gray-100 mb-3">
+                  What 3D Anvil actually does
+                </h3>
+                <ul className="space-y-2 text-small text-gray-500 dark:text-gray-400 leading-relaxed">
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-400 mt-0.5 flex-shrink-0">—</span>
+                    <span>Provides a polished, no-code UI to interact with Solana</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-400 mt-0.5 flex-shrink-0">—</span>
+                    <span>Handles uploading 3D files to Arweave via Irys so creators don&apos;t have to</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-400 mt-0.5 flex-shrink-0">—</span>
+                    <span>Wires up Candy Machine so creators can launch drops with real sale mechanics in minutes</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-orange-400 mt-0.5 flex-shrink-0">—</span>
+                    <span>Shows an interactive 3D viewer for every asset so collectors can inspect before minting</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="p-5 rounded-lg bg-orange-400/5 border border-orange-400/20">
+                <p className="text-small text-gray-600 dark:text-gray-400 leading-relaxed">
+                  <span className="font-semibold text-orange-500 dark:text-orange-400">
+                    Because it&apos;s CC0:
+                  </span>{' '}
+                  anyone can fork this repo and run their own copy — supporting
+                  the community, building a competing version, or adapting it
+                  for a specific niche. The more forks and hosts, the more
+                  resilient the whole ecosystem becomes.
+                </p>
+              </div>
+            </section>
+
+            {/* For Developers */}
+            <section id="developers">
+              <h2 className="text-title font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-6">
+                For Developers
+              </h2>
+              <div className="space-y-4 text-body text-gray-600 dark:text-gray-400 leading-relaxed mb-8">
+                <p>
+                  Want to build something similar, integrate 3D Anvil&apos;s NFT
+                  infrastructure into your own project, or just understand how
+                  everything fits together? The repo is structured to make
+                  that easy.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <div className="p-5 rounded-lg bg-gray-50/60 dark:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30">
+                  <h3 className="text-body font-bold text-gray-900 dark:text-gray-100 mb-3">
+                    AGENTS.md — start here
+                  </h3>
+                  <p className="text-small text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+                    The{' '}
+                    <a
+                      href="https://github.com/ToxSam/3d-anvil/blob/main/AGENTS.md"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-orange-500 dark:text-orange-400 hover:underline font-mono"
+                    >
+                      AGENTS.md
+                    </a>{' '}
+                    file at the root of the repo is the full map of the project.
+                    It documents what every part does, which files are critical,
+                    the security model, the environment variables, every route,
+                    and how to run it locally. It&apos;s written to be readable by
+                    both humans and AI coding assistants — so you (or your AI
+                    agent) can get up to speed immediately and make changes
+                    safely.
+                  </p>
+                  <p className="text-small text-gray-500 dark:text-gray-400 leading-relaxed">
+                    If you&apos;re using Cursor, Claude, or any LLM to help you
+                    build on this codebase, point it at AGENTS.md first. It
+                    tells the AI what not to touch and what patterns to follow.
+                  </p>
+                </div>
+
+                <div className="p-5 rounded-lg bg-gray-50/60 dark:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30">
+                  <h3 className="text-body font-bold text-gray-900 dark:text-gray-100 mb-3">
+                    Launchpad Registry — integrate NFTs into your project
+                  </h3>
+                  <p className="text-small text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+                    3D Anvil includes a registry that tracks all collections
+                    created through the platform. The registry is backed by
+                    Vercel KV (Redis) and every write is verified on-chain
+                    before it&apos;s accepted — so the data is trustworthy.
+                  </p>
+                  <p className="text-small text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+                    If you&apos;re building a game, metaverse, or any project
+                    that wants to support 3D Anvil NFTs, you can query the
+                    registry to enumerate collections and verify ownership.
+                    The{' '}
+                    <a
+                      href="https://github.com/ToxSam/3d-anvil/blob/main/src/lib/server/launchpadRegistry.ts"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-orange-500 dark:text-orange-400 hover:underline font-mono"
+                    >
+                      launchpadRegistry.ts
+                    </a>{' '}
+                    module and the{' '}
+                    <span className="font-mono text-gray-600 dark:text-gray-300">/api/launchpad/</span>{' '}
+                    endpoints are documented in AGENTS.md.
+                  </p>
+                  <div className="mt-3 p-3 rounded bg-gray-100/60 dark:bg-gray-800/40 font-mono text-caption text-gray-600 dark:text-gray-400 leading-relaxed">
+                    <span className="text-gray-400 dark:text-gray-500">KV key structure:</span>
+                    <br />
+                    lp:collection:&lt;mint&gt; → {'{'} mint, creator, createdAt, network {'}'}
+                    <br />
+                    lp:sig:&lt;txSig&gt; → 1 <span className="text-gray-400 dark:text-gray-500">(replay protection)</span>
+                  </div>
+                </div>
+
+                <div className="p-5 rounded-lg bg-gray-50/60 dark:bg-gray-900/40 border border-gray-200/50 dark:border-gray-700/30">
+                  <h3 className="text-body font-bold text-gray-900 dark:text-gray-100 mb-3">
+                    Use it as a template
+                  </h3>
+                  <p className="text-small text-gray-500 dark:text-gray-400 leading-relaxed mb-3">
+                    The codebase is a working Next.js 14 App Router project with
+                    Solana wallet integration, Metaplex/UMI, Candy Machine drops,
+                    Irys/Arweave uploads, a server-side RPC proxy, and a KV
+                    registry — all production-ready patterns. Fork it and swap
+                    in your own branding, domain, and features.
+                  </p>
+                  <div className="flex flex-wrap gap-3 mt-4">
+                    <a
+                      href="https://github.com/ToxSam/3d-anvil"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-small font-medium bg-gray-900 dark:bg-gray-100 text-gray-100 dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-300 transition-colors"
+                    >
+                      <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                      </svg>
+                      View on GitHub
+                    </a>
+                    <a
+                      href="https://github.com/ToxSam/3d-anvil/blob/main/AGENTS.md"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-small font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-orange-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+                    >
+                      Read AGENTS.md
+                    </a>
                   </div>
                 </div>
               </div>

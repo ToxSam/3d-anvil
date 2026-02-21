@@ -63,9 +63,13 @@ function shortenAddress(addr: string, chars = 4): string {
 function getExtFromUri(uri: string): string {
   try {
     const pathname = new URL(uri).pathname;
-    return pathname.split('.').pop()?.toLowerCase() || '';
+    const lastSegment = pathname.split('/').filter(Boolean).pop() || '';
+    if (!lastSegment.includes('.')) return '';
+    return lastSegment.split('.').pop()?.toLowerCase() || '';
   } catch {
-    return uri.split('.').pop()?.toLowerCase()?.split('?')[0] || '';
+    const part = uri.split('/').pop()?.split('?')[0] || '';
+    if (!part.includes('.')) return '';
+    return part.split('.').pop()?.toLowerCase() || '';
   }
 }
 
@@ -1375,7 +1379,7 @@ export default function DropPage() {
   const animationUrl = resolveArweaveUrl(collection?.json?.animation_url);
   const isVRM = !!animationUrl;
   const json = collection?.json || {};
-  const rawFiles: { uri: string; type: string }[] = json.properties?.files || [];
+  const rawFiles: { uri: string; type: string; name?: string }[] = json.properties?.files || [];
   const files = rawFiles.map((f) => ({ ...f, uri: resolveArweaveUrl(f.uri) || f.uri }));
   const attributes = json.attributes || [];
 
@@ -1395,8 +1399,8 @@ export default function DropPage() {
     }
     modelFiles.forEach((f) => {
       if (f.uri === animationUrl) return;
-      const ext = getExtFromUri(f.uri).toUpperCase();
-      models.push({ url: f.uri, label: `${ext || '3D'} Model`, isVrm: f.resolvedType === 'model/vrm' });
+      const label = f.name || getFileTypeLabel(f.resolvedType);
+      models.push({ url: f.uri, label, isVrm: f.resolvedType === 'model/vrm' });
     });
     return models;
   }, [animationUrl, modelFiles]);
@@ -2410,7 +2414,7 @@ export default function DropPage() {
                         <div className="space-y-2">
                           {modelFiles.map((file, i) => {
                             const isMain = file.uri === animationUrl;
-                            const fileName = getFileNameFromUri(file.uri);
+                            const fileName = file.name || getFileNameFromUri(file.uri);
                             const formatLabel = getModelFormatFromUri(file.uri);
                             const viewerIdx = viewerModels.findIndex((m) => m.url === file.uri);
                             const ext = getExtFromUri(file.uri).toLowerCase();

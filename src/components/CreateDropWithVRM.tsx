@@ -803,7 +803,7 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
       // (local-storage mode falls back to the Metaplex adapter path)
       let vrmUrl: string;
       let thumbnailUrl: string;
-      const uploadedAdditionalFiles: { uri: string; type: string }[] = [];
+      const uploadedAdditionalFiles: { uri: string; type: string; name: string }[] = [];
       let metadataUrl: string;
 
       if (!useLocalStorage) {
@@ -836,7 +836,7 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
           for (let i = 0; i < additionalFiles.length; i++) {
             const af = additionalFiles[i];
             const uri = urlMap.get(`add_${i}__${af.file.name}`);
-            if (uri) uploadedAdditionalFiles.push({ uri, type: getMimeType(af.file) });
+            if (uri) uploadedAdditionalFiles.push({ uri, type: getMimeType(af.file), name: af.file.name });
           }
         }
       } else {
@@ -854,7 +854,7 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
             const af = additionalFiles[i];
             setStatus(`Storing additional file ${i + 1}/${additionalFiles.length}: ${af.name}\u2026`);
             const uri = await uploadFileToArweave(metaplex, af.file);
-            uploadedAdditionalFiles.push({ uri, type: getMimeType(af.file) });
+            uploadedAdditionalFiles.push({ uri, type: getMimeType(af.file), name: af.file.name });
           }
         }
       }
@@ -901,8 +901,8 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
           collection_kind: COLLECTION_KIND.DROP,
           is_drop: true, // legacy compat
           files: [
-            { uri: vrmUrl, type: 'model/vrm' },
-            { uri: thumbnailUrl, type: thumbnailFile.type || 'image/png' },
+            { uri: vrmUrl, type: 'model/vrm', name: vrmFile.name },
+            { uri: thumbnailUrl, type: thumbnailFile.type || 'image/png', name: thumbnailFile.name },
             ...uploadedAdditionalFiles,
           ],
         },
