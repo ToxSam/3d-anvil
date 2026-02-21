@@ -1,0 +1,52 @@
+{
+  "name": "3d-anvil",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@irys/web-upload": "^0.0.15",
+    "@irys/web-upload-solana": "^0.1.8",
+    "@metaplex-foundation/js": "^0.20.1",
+    "@metaplex-foundation/mpl-candy-machine": "^6.1.0",
+    "@metaplex-foundation/mpl-token-metadata": "^3.4.0",
+    "@metaplex-foundation/mpl-toolbox": "^0.10.0",
+    "@metaplex-foundation/umi": "^1.5.1",
+    "@metaplex-foundation/umi-bundle-defaults": "^1.5.1",
+    "@metaplex-foundation/umi-signer-wallet-adapters": "^1.5.1",
+    "@metaplex-foundation/umi-uploader-irys": "^1.5.0",
+    "@pixiv/three-vrm": "^3.4.5",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
+    "@solana/wallet-adapter-base": "^0.9.23",
+    "@solana/wallet-adapter-phantom": "^0.9.24",
+    "@solana/wallet-adapter-react": "^0.15.35",
+    "@solana/wallet-adapter-react-ui": "^0.9.35",
+    "@solana/wallet-adapter-solflare": "^0.6.28",
+    "@solana/wallet-adapter-wallets": "^0.19.32",
+    "@solana/web3.js": "^1.98.4",
+    "@upstash/redis": "^1.36.2",
+    "bignumber.js": "^9.3.1",
+    "bs58": "^6.0.0",
+    "buffer": "^6.0.3",
+    "next": "14.2.35",
+    "react": "^18",
+    "react-dom": "^18",
+    "three": "^0.182.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "@types/three": "^0.182.0",
+    "eslint": "^8",
+    "eslint-config-next": "14.2.35",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5"
+  }
+}

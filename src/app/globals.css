@@ -1,0 +1,2373 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ========================================
+   Design System - 3D Anvil
+   Based on ToxSam Portfolio Style Guide
+   ======================================== */
+
+:root {
+  --background: #EBE7E0;
+  --foreground: #262626;
+  --font-geist-sans: "Geist Sans", system-ui, sans-serif;
+  --font-geist-mono: "Geist Mono", monospace;
+}
+
+.dark {
+  --background: #141311;
+  --foreground: #E5E5E5;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-geist-sans);
+}
+
+/* Selection */
+::selection {
+  @apply bg-gray-900 text-white;
+}
+
+.dark ::selection {
+  @apply bg-gray-100 text-gray-900;
+}
+
+/* ========================================
+   Typography Utilities
+   ======================================== */
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* ========================================
+   Component Classes
+   ======================================== */
+
+@layer components {
+  /* Container */
+  .container-custom {
+    @apply max-w-7xl mx-auto px-6 md:px-8 lg:px-12;
+  }
+
+  /* Section Padding */
+  .section-padding {
+    @apply py-20 md:py-32;
+  }
+
+  /* Hero Section - Full impact with depth */
+  .section-hero {
+    @apply relative min-h-[85vh] flex items-center overflow-hidden;
+    background: linear-gradient(135deg, #EBE7E0 0%, #E0DCD4 50%, #EBE7E0 100%);
+  }
+
+  .dark .section-hero {
+    background: linear-gradient(155deg, #0f0d1a 0%, #141311 35%, #0a0812 70%, #000000 100%);
+  }
+
+  .section-hero::before {
+    content: "";
+    position: absolute;
+    /* Extend beyond edges so drifting grid never shows a boundary */
+    inset: -60px;
+    background-image:
+      linear-gradient(rgba(0,0,0,0.1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,0,0,0.1) 1px, transparent 1px);
+    background-size: 48px 48px;
+    background-position: 0 0;
+    pointer-events: none;
+    animation: grid-drift 6s linear infinite;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+  }
+
+  .dark .section-hero::before {
+    background-image:
+      linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+  }
+
+  .hero-heading-single {
+    font-size: clamp(2rem, 5vw, 3.75rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+  }
+
+  /* Legacy hero typography (kept for other pages) */
+  .hero-heading {
+    font-size: clamp(1.75rem, 5vw, 3.5rem);
+  }
+
+  .hero-anvil {
+    display: block;
+    font-size: clamp(2.5rem, 10vw, 6rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
+  }
+
+  .hero-mint {
+    font-size: clamp(1rem, 2.5vw, 1.25rem);
+    font-weight: 500;
+    @apply text-gray-500 dark:text-gray-400;
+  }
+
+  .hero-chain {
+    font-size: clamp(1.5rem, 4vw, 2.5rem);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  /* Primary Button */
+  .btn-primary {
+    @apply bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900
+           hover:bg-gray-700 dark:hover:bg-gray-300
+           px-6 py-3 font-medium transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2
+           dark:focus:ring-white dark:focus:ring-offset-2;
+  }
+
+  /* Hero primary CTA - bold, glowing */
+  .btn-hero-primary {
+    @apply relative px-8 py-4 font-semibold text-white bg-gray-900 dark:bg-gray-100 dark:text-gray-900
+           transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2
+           dark:focus:ring-white dark:focus:ring-offset-gray-900
+           shadow-[0_0_24px_rgba(0,0,0,0.25)] dark:shadow-[0_0_24px_rgba(255,255,255,0.2)];
+  }
+
+  .btn-hero-primary:hover {
+    @apply bg-gray-800 dark:bg-gray-200;
+    /* Orange glow like Ready to forge CTA */
+    box-shadow:
+      0 0 30px rgba(255, 170, 0, 0.7),
+      0 0 60px rgba(255, 69, 0, 0.5),
+      0 0 90px rgba(255, 69, 0, 0.3),
+      inset 0 1px 0 rgba(255, 220, 180, 0.25);
+  }
+
+  .dark .btn-hero-primary:hover {
+    box-shadow:
+      0 0 30px rgba(255, 170, 0, 0.7),
+      0 0 60px rgba(255, 69, 0, 0.5),
+      0 0 90px rgba(255, 69, 0, 0.3),
+      inset 0 1px 0 rgba(255, 220, 180, 0.25);
+  }
+
+  /* Ghost / secondary CTA */
+  .btn-ghost {
+    @apply px-6 py-3 font-medium text-gray-600 dark:text-gray-400
+           hover:text-gray-900 dark:hover:text-gray-100
+           transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2
+           dark:focus:ring-gray-500 dark:focus:ring-offset-gray-900;
+  }
+
+  /* Outline Button */
+  .btn-outline {
+    @apply border-2 border-gray-900 text-gray-900 dark:border-gray-100 dark:text-gray-100
+           hover:bg-gray-900 hover:text-white dark:hover:bg-gray-100 dark:hover:text-gray-900
+           px-6 py-3 font-medium transition-all duration-200
+           focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2
+           dark:focus:ring-white dark:focus:ring-offset-2;
+  }
+
+  /* Link with hover underline animation */
+  .link-hover {
+    @apply relative;
+  }
+
+  .link-hover::after {
+    content: "";
+    @apply absolute bottom-0 left-0 w-0 h-[1px] bg-current transition-all duration-300;
+  }
+
+  .link-hover:hover::after {
+    @apply w-full;
+  }
+
+  /* Caption/Label */
+  .text-label {
+    @apply text-caption uppercase tracking-widest text-gray-500 dark:text-gray-400;
+  }
+
+  /* Card Hover */
+  .card-hover {
+    @apply transition-all duration-300 ease-out;
+  }
+
+  .card-hover:hover {
+    @apply -translate-y-1 shadow-lg shadow-black/5 dark:shadow-white/5;
+  }
+
+  /* Text Gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-gray-900 via-gray-600 to-gray-900 dark:from-gray-100 dark:via-gray-400 dark:to-gray-100;
+    background-size: 200% auto;
+    animation: gradient-shift 4s ease-in-out infinite;
+  }
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+
+.animation-delay-100 { animation-delay: 100ms; }
+.animation-delay-200 { animation-delay: 200ms; }
+.animation-delay-300 { animation-delay: 300ms; }
+.animation-delay-400 { animation-delay: 400ms; }
+.animation-delay-500 { animation-delay: 500ms; }
+
+/* ========================================
+   Hero 3D Model
+   ======================================== */
+
+/* Hero 3D - dominates right side on desktop */
+.hero-model-container {
+  width: 100%;
+  height: 100%;
+  min-height: 320px;
+  aspect-ratio: 1;
+  max-width: 420px;
+  max-height: 420px;
+}
+
+@media (min-width: 1024px) {
+  .hero-model-container {
+    position: absolute;
+    right: -2%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 72%;
+    max-width: none;
+    height: 80vh;
+    min-height: 520px;
+    max-height: 820px;
+    aspect-ratio: auto;
+  }
+}
+
+@media (max-width: 1023px) {
+  .hero-model-container {
+    max-width: 320px;
+    max-height: 320px;
+    min-height: 280px;
+    margin: 0 auto;
+  }
+}
+
+/* ========================================
+   Gradient Animation
+   ======================================== */
+
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% center; }
+  50% { background-position: 200% center; }
+}
+
+/* Drift by exactly one grid cell (48px) via background-position so the loop is seamless and no layer edge is visible */
+@keyframes grid-drift {
+  0% { background-position: 0 0; }
+  100% { background-position: 48px 48px; }
+}
+
+/* ========================================
+   Forge word – blacksmithing animation
+   ======================================== */
+
+.forge-phrase {
+  display: inline;
+  line-height: 1.05;
+}
+
+/* Force exactly 2 lines: "Forge 3D Assets" / "On Solana" – tight spacing */
+.forge-line {
+  display: block;
+  white-space: nowrap;
+  line-height: 1.08;
+}
+
+.forge-line-gap {
+  display: block;
+  height: 0.12em;
+}
+
+.forge-line-2 {
+  margin-top: 0;
+}
+
+/* One ember glow per word (each word has its own .forge-word) */
+.forge-word {
+  position: relative;
+  margin-right: 0.12em;
+}
+
+.forge-word::after {
+  content: "";
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  bottom: -2px;
+  top: -2px;
+  z-index: -1;
+  border-radius: 2px;
+  opacity: 0.35;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(251,146,60,0.4), transparent 70%);
+  animation: ember-breathe 3s ease-in-out infinite;
+}
+
+.dark .forge-word::after {
+  opacity: 0.5;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(251,146,60,0.35), transparent 70%);
+  animation: ember-breathe-dark 3s ease-in-out infinite;
+}
+
+@keyframes ember-breathe {
+  0%, 100% { opacity: 0.35; filter: brightness(1); }
+  50% { opacity: 0.5; filter: brightness(1.15); }
+}
+
+@keyframes ember-breathe-dark {
+  0%, 100% { opacity: 0.4; filter: brightness(1); }
+  50% { opacity: 0.65; filter: brightness(1.2); }
+}
+
+/* Forging reveal: letters start dim (fade in), then brighten with shimmer – backwards = visible dim during delay */
+.forge-letter {
+  display: inline-block;
+  animation: forging-reveal 0.6s ease-out backwards;
+  animation-delay: var(--forge-delay, 0ms);
+  position: relative;
+  overflow: visible;
+}
+
+.forge-letter.forge-space {
+  min-width: 0.2em;
+}
+
+/* Particles when each letter appears (forging reveal) */
+.forge-reveal-particles {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.forge-reveal-particle {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  left: 0;
+  top: 0;
+  border-radius: 50%;
+  background: rgba(251, 146, 60, 0.45);
+  box-shadow: 0 0 4px rgba(251, 146, 60, 0.3);
+  opacity: 0;
+  animation-delay: var(--forge-delay, 0ms);
+}
+
+.forge-reveal-particle:nth-child(1) { animation: reveal-particle-1 0.45s ease-out forwards; }
+.forge-reveal-particle:nth-child(2) { animation: reveal-particle-2 0.45s ease-out forwards; }
+.forge-reveal-particle:nth-child(3) { animation: reveal-particle-3 0.45s ease-out forwards; }
+.forge-reveal-particle:nth-child(4) { animation: reveal-particle-4 0.45s ease-out forwards; }
+.forge-reveal-particle:nth-child(5) { animation: reveal-particle-5 0.45s ease-out forwards; }
+.forge-reveal-particle:nth-child(6) { animation: reveal-particle-6 0.45s ease-out forwards; }
+
+@keyframes reveal-particle-1 { 0% { opacity: 0.8; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(6px, -8px) scale(0); } }
+@keyframes reveal-particle-2 { 0% { opacity: 0.8; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-8px, -4px) scale(0); } }
+@keyframes reveal-particle-3 { 0% { opacity: 0.8; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(8px, 4px) scale(0); } }
+@keyframes reveal-particle-4 { 0% { opacity: 0.8; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-4px, 8px) scale(0); } }
+@keyframes reveal-particle-5 { 0% { opacity: 0.8; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(5px, 6px) scale(0); } }
+@keyframes reveal-particle-6 { 0% { opacity: 0.8; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-6px, -5px) scale(0); } }
+
+@keyframes forging-reveal {
+  0% {
+    opacity: 0.4;
+    filter: brightness(0.7);
+    text-shadow: 0 0 0 transparent;
+  }
+  40% {
+    opacity: 1;
+    filter: brightness(1.4);
+    text-shadow: 0 0 12px rgba(251,146,60,0.6), 0 0 4px rgba(255,200,100,0.8);
+  }
+  70% {
+    filter: brightness(1.15);
+    text-shadow: 0 0 8px rgba(255,200,100,0.4);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+    text-shadow: 0 0 0 transparent;
+  }
+}
+
+.dark .forge-letter {
+  animation: forging-reveal-dark 0.6s ease-out backwards;
+  animation-delay: var(--forge-delay, 0ms);
+}
+
+@keyframes forging-reveal-dark {
+  0% {
+    opacity: 0.35;
+    filter: brightness(0.6);
+    text-shadow: 0 0 0 transparent;
+  }
+  40% {
+    opacity: 1;
+    filter: brightness(1.5);
+    text-shadow: 0 0 14px rgba(251,146,60,0.5), 0 0 6px rgba(255,200,100,0.6);
+  }
+  70% {
+    filter: brightness(1.2);
+    text-shadow: 0 0 10px rgba(255,200,100,0.35);
+  }
+  100% {
+    opacity: 1;
+    filter: brightness(1);
+    text-shadow: 0 0 0 transparent;
+  }
+}
+
+/* Hammer strike: bright flash + intense glow + lightning/smash particles */
+.forge-letter.forge-strike {
+  animation: hammer-strike 0.65s ease-out;
+}
+
+/* Subtle lightning ring – appears during the "dark" moment of the strike */
+.forge-strike-flash {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.2em;
+  height: 1.2em;
+  margin-left: -0.6em;
+  margin-top: -0.6em;
+  border-radius: 50%;
+  pointer-events: none;
+  border: 1px solid rgba(255, 210, 130, 0.35);
+  box-shadow: 0 0 6px rgba(255, 190, 100, 0.2);
+  animation: strike-flash 0.4s ease-out 0.08s forwards;
+  opacity: 0;
+}
+
+@keyframes strike-flash {
+  0% { opacity: 0.4; transform: scale(0.5); }
+  50% { opacity: 0.8; transform: scale(1.2); }
+  100% { opacity: 0; transform: scale(1.5); }
+}
+
+/* Strike sequence: Glow → Dark + ring → Glow → Restore */
+@keyframes hammer-strike {
+  0% {
+    filter: brightness(1.15);
+    text-shadow: 0 0 10px rgba(251, 146, 60, 0.4), 0 0 4px rgba(255, 200, 100, 0.35);
+    transform: scale(1);
+  }
+  12% {
+    filter: brightness(0.55);
+    text-shadow: 0 0 4px rgba(251, 146, 60, 0.2);
+    transform: scale(0.98);
+  }
+  40% {
+    filter: brightness(1.25);
+    text-shadow: 0 0 14px rgba(251, 146, 60, 0.5), 0 0 6px rgba(255, 200, 100, 0.45);
+    transform: scale(1.02);
+  }
+  100% {
+    filter: brightness(1);
+    text-shadow: 0 0 0 transparent;
+    transform: scale(1);
+  }
+}
+
+/* Sparks container: around the struck letter */
+.forge-sparks {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* Smash sparks – visible like hammer-on-anvil / lightning */
+.forge-spark {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  left: 0;
+  top: 0;
+  margin-left: -3px;
+  margin-top: -3px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,240,180,0.98) 0%, rgba(255,200,80,0.9) 35%, rgba(251,146,60,0.7) 60%, transparent 75%);
+  box-shadow: 0 0 10px rgba(255,220,100,0.9), 0 0 4px rgba(255,180,60,0.8);
+  opacity: 0;
+}
+
+.forge-spark:nth-child(1) { animation: spark-fly-1 0.55s ease-out 0s forwards; }
+.forge-spark:nth-child(2) { animation: spark-fly-2 0.55s ease-out 0.02s forwards; }
+.forge-spark:nth-child(3) { animation: spark-fly-3 0.55s ease-out 0.01s forwards; }
+.forge-spark:nth-child(4) { animation: spark-fly-4 0.55s ease-out 0.03s forwards; }
+.forge-spark:nth-child(5) { animation: spark-fly-5 0.55s ease-out 0.02s forwards; }
+.forge-spark:nth-child(6) { animation: spark-fly-6 0.55s ease-out 0.01s forwards; }
+.forge-spark:nth-child(7) { animation: spark-fly-7 0.55s ease-out 0.02s forwards; }
+
+@keyframes spark-fly-1 { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(22px, 0) scale(0.15); } }
+@keyframes spark-fly-2 { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(8px, -24px) scale(0.15); } }
+@keyframes spark-fly-3 { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-20px, -14px) scale(0.15); } }
+@keyframes spark-fly-4 { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-16px, 12px) scale(0.15); } }
+@keyframes spark-fly-5 { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(10px, 26px) scale(0.15); } }
+@keyframes spark-fly-6 { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-12px, 18px) scale(0.15); } }
+@keyframes spark-fly-7 { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(18px, -10px) scale(0.15); } }
+
+/* Smash dust / small particles burst on each strike */
+.forge-dust {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.forge-dust-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  left: 0;
+  top: 0;
+  margin-left: -1.5px;
+  margin-top: -1.5px;
+  border-radius: 50%;
+  background: rgba(255, 200, 100, 0.75);
+  box-shadow: 0 0 6px rgba(251, 146, 60, 0.6);
+  opacity: 0;
+}
+
+.forge-dust-particle:nth-child(1)  { animation: dust-fly-1  0.4s ease-out 0s forwards; }
+.forge-dust-particle:nth-child(2)  { animation: dust-fly-2  0.4s ease-out 0.02s forwards; }
+.forge-dust-particle:nth-child(3)  { animation: dust-fly-3  0.4s ease-out 0.01s forwards; }
+.forge-dust-particle:nth-child(4)  { animation: dust-fly-4  0.4s ease-out 0.03s forwards; }
+.forge-dust-particle:nth-child(5)  { animation: dust-fly-5  0.4s ease-out 0.01s forwards; }
+.forge-dust-particle:nth-child(6)  { animation: dust-fly-6  0.4s ease-out 0.02s forwards; }
+.forge-dust-particle:nth-child(7)  { animation: dust-fly-7  0.4s ease-out 0.02s forwards; }
+.forge-dust-particle:nth-child(8)  { animation: dust-fly-8  0.4s ease-out 0.04s forwards; }
+.forge-dust-particle:nth-child(9)  { animation: dust-fly-9  0.4s ease-out 0.01s forwards; }
+.forge-dust-particle:nth-child(10) { animation: dust-fly-10 0.4s ease-out 0.03s forwards; }
+.forge-dust-particle:nth-child(11) { animation: dust-fly-11 0.4s ease-out 0.02s forwards; }
+.forge-dust-particle:nth-child(12) { animation: dust-fly-12 0.4s ease-out 0.01s forwards; }
+
+@keyframes dust-fly-1  { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(10px, -14px) scale(0); } }
+@keyframes dust-fly-2  { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-12px, -10px) scale(0); } }
+@keyframes dust-fly-3  { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(14px, 8px) scale(0); } }
+@keyframes dust-fly-4  { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-8px, 16px) scale(0); } }
+@keyframes dust-fly-5  { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(16px, 4px) scale(0); } }
+@keyframes dust-fly-6  { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-16px, -6px) scale(0); } }
+@keyframes dust-fly-7  { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(6px, 12px) scale(0); } }
+@keyframes dust-fly-8  { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-10px, -12px) scale(0); } }
+@keyframes dust-fly-9  { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(12px, -8px) scale(0); } }
+@keyframes dust-fly-10 { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-6px, 10px) scale(0); } }
+@keyframes dust-fly-11 { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(8px, -14px) scale(0); } }
+@keyframes dust-fly-12 { 0% { opacity: 0.95; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(-14px, 6px) scale(0); } }
+
+/* ========================================
+   Home Page - Unified Grid
+   ======================================== */
+
+/* Single grid + gradient for the entire home page (no per-section grids) */
+.page-home {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #EBE7E0 0%, #E0DCD4 50%, #EBE7E0 100%);
+}
+
+.dark .page-home {
+  background: linear-gradient(155deg, #0f0d1a 0%, #141311 35%, #0a0812 70%, #000000 100%);
+}
+
+/* Fixed grid: one continuous grid across viewport, visible in all sections */
+.page-home::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: 0 0;
+  pointer-events: none;
+  animation: grid-drift 7s linear infinite;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.dark .page-home::before {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+}
+
+/* Remove per-section backgrounds/grids so the unified page grid shows through */
+.page-home .section-hero,
+.dark .page-home .section-hero {
+  background: transparent !important;
+}
+
+.page-home .section-hero::before {
+  display: none;
+}
+
+.page-home .section-forge,
+.dark .page-home .section-forge {
+  background: transparent !important;
+}
+
+.page-home .section-forge:not(.section-cta-forge)::before {
+  display: none;
+}
+
+/* Ensure section content sits above the fixed grid */
+.page-home .section-hero,
+.page-home .section-forge {
+  position: relative;
+  z-index: 1;
+}
+
+/* Page-wide ambient effects: heat gradient, vignette, shimmer, embers
+   Opacity driven by --effects-intensity (0 at top, ramps up toward bottom) */
+.page-home-effects {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: var(--effects-intensity, 0);
+  transition: opacity 0.4s ease-out;
+}
+
+.page-heat-gradient {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 90% 70% at 50% 100%,
+    rgba(255, 170, 0, 0.35) 0%,
+    rgba(255, 69, 0, 0.25) 18%,
+    rgba(139, 0, 0, 0.15) 35%,
+    rgba(10, 14, 39, 0.08) 55%,
+    transparent 75%
+  );
+}
+
+.dark .page-heat-gradient {
+  background: radial-gradient(
+    ellipse 90% 70% at 50% 100%,
+    rgba(255, 170, 0, 0.4) 0%,
+    rgba(255, 69, 0, 0.28) 18%,
+    rgba(139, 0, 0, 0.18) 35%,
+    rgba(10, 14, 39, 0.2) 55%,
+    transparent 75%
+  );
+}
+
+.page-heat-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 120% 120% at 50% 50%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.12) 65%,
+    rgba(0, 0, 0, 0.35) 100%
+  );
+}
+
+.dark .page-heat-vignette {
+  background: radial-gradient(
+    ellipse 120% 120% at 50% 50%,
+    transparent 25%,
+    rgba(0, 0, 0, 0.35) 60%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+}
+
+.page-home-effects .cta-heat-shimmer {
+  position: absolute;
+  inset: 0;
+}
+
+.page-home-effects .ember-particle {
+  position: absolute;
+}
+
+/* Hero section: subtle floating particles (always visible, draw attention) */
+.hero-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hero-ember {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  background: rgba(255, 200, 120, 0.7);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(255, 170, 0, 0.5);
+  animation: hero-ember-float var(--hero-duration, 14s) ease-in-out infinite;
+  animation-delay: var(--hero-delay, 0s);
+  opacity: 0;
+}
+
+.hero-ember:nth-child(4n + 1) { animation-name: hero-ember-float-1; }
+.hero-ember:nth-child(4n + 2) { animation-name: hero-ember-float-2; }
+.hero-ember:nth-child(4n + 3) { animation-name: hero-ember-float-3; }
+.hero-ember:nth-child(4n) { animation-name: hero-ember-float-4; }
+
+@keyframes hero-ember-float {
+  0%, 100% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  15% { opacity: 0.7; }
+  50% { transform: translate(8px, 15vh) scale(1); opacity: 0.85; }
+  85% { opacity: 0.4; }
+  100% { transform: translate(-5px, 25vh) scale(0.5); opacity: 0; }
+}
+
+@keyframes hero-ember-float-1 {
+  0%, 100% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+  12% { opacity: 0.65; }
+  45% { transform: translate(-10px, 12vh) scale(0.95); opacity: 0.8; }
+  88% { opacity: 0.3; }
+  100% { transform: translate(6px, 22vh) scale(0.4); opacity: 0; }
+}
+
+@keyframes hero-ember-float-2 {
+  0%, 100% { transform: translate(0, 0) scale(0.6); opacity: 0; }
+  18% { opacity: 0.75; }
+  55% { transform: translate(12px, 18vh) scale(1); opacity: 0.9; }
+  82% { opacity: 0.35; }
+  100% { transform: translate(-8px, 28vh) scale(0.45); opacity: 0; }
+}
+
+@keyframes hero-ember-float-3 {
+  0%, 100% { transform: translate(0, 0) scale(0.55); opacity: 0; }
+  10% { opacity: 0.6; }
+  50% { transform: translate(-6px, 14vh) scale(0.9); opacity: 0.75; }
+  90% { opacity: 0.25; }
+  100% { transform: translate(10px, 24vh) scale(0.5); opacity: 0; }
+}
+
+@keyframes hero-ember-float-4 {
+  0%, 100% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+  20% { opacity: 0.8; }
+  48% { transform: translate(5px, 16vh) scale(1.05); opacity: 0.85; }
+  80% { opacity: 0.4; }
+  100% { transform: translate(-12px, 26vh) scale(0.4); opacity: 0; }
+}
+
+/* ========================================
+   Home Sections - Hero-style theme
+   ======================================== */
+
+/* Section with hero-style dark gradient (grid moved to .page-home) */
+.section-forge {
+  position: relative;
+  overflow: hidden;
+}
+
+.section-forge {
+  background: linear-gradient(135deg, #EBE7E0 0%, #E0DCD4 50%, #EBE7E0 100%);
+}
+
+.dark .section-forge {
+  background: linear-gradient(155deg, #0f0d1a 0%, #141311 35%, #0a0812 70%, #000000 100%);
+}
+
+.section-forge::before {
+  content: "";
+  position: absolute;
+  inset: -60px;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: 0 0;
+  pointer-events: none;
+  animation: grid-drift 8s linear infinite;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.dark .section-forge::before {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+}
+
+/* ---- 3D Creator Cards ---- */
+.card-forge {
+  position: relative;
+  padding: 2rem;
+  border-radius: 0;
+  transition: all 0.4s ease;
+  overflow: hidden;
+}
+
+/* Default: dark/night outline (gray) */
+.card-forge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(75, 85, 99, 0.5), rgba(107, 114, 128, 0.45));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.9;
+  transition: opacity 0.4s, background 0.4s;
+}
+
+.dark .card-forge::before {
+  background: linear-gradient(135deg, rgba(75, 85, 99, 0.6), rgba(113, 113, 122, 0.5));
+}
+
+/* Hover: orange heating border + glow */
+.card-forge::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.12), transparent 40%, transparent 60%, rgba(245, 158, 11, 0.1));
+  opacity: 0;
+  transition: opacity 0.4s;
+  pointer-events: none;
+}
+
+.card-forge:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 0 32px rgba(251, 146, 60, 0.2), 0 0 64px rgba(245, 158, 11, 0.1);
+}
+
+/* Hover: switch to orange border and run heating animation */
+.card-forge:hover::before {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.7), rgba(245, 158, 11, 0.6), rgba(251, 146, 60, 0.7));
+  opacity: 1;
+  animation: card-forge-heat 1.8s ease-in-out infinite;
+}
+
+.dark .card-forge:hover::before {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.75), rgba(245, 158, 11, 0.65), rgba(251, 146, 60, 0.75));
+}
+
+.card-forge:hover::after {
+  opacity: 1;
+  animation: card-forge-heat-glow 1.8s ease-in-out infinite;
+}
+
+/* Heat shimmer overlay on card hover (like forge heat waves) */
+.card-forge-heat-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 180, 80, 0.04) 25%,
+    transparent 50%,
+    rgba(255, 180, 80, 0.03) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+
+.card-forge:hover .card-forge-heat-shimmer {
+  opacity: 1;
+  animation: card-heat-waver 2s ease-in-out infinite;
+}
+
+@keyframes card-heat-waver {
+  0%, 100% { background-position: 0% 50%; opacity: 0.8; }
+  50% { background-position: 100% 50%; opacity: 1; }
+}
+
+@keyframes card-forge-heat {
+  0%, 100% { opacity: 0.9; filter: brightness(1); }
+  50% { opacity: 1; filter: brightness(1.15); }
+}
+
+@keyframes card-forge-heat-glow {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+.card-forge .card-spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: rgba(251, 146, 60, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(251, 146, 60, 0.8);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.card-forge:hover .card-spark {
+  opacity: 1;
+  animation: card-spark-pulse 1.5s ease-in-out infinite;
+}
+
+.card-forge .card-spark-tl { top: 12px; left: 12px; }
+.card-forge .card-spark-tr { top: 12px; right: 12px; animation-delay: 0.2s; }
+.card-forge .card-spark-bl { bottom: 12px; left: 12px; animation-delay: 0.4s; }
+.card-forge .card-spark-br { bottom: 12px; right: 12px; animation-delay: 0.3s; }
+
+@keyframes card-spark-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Card wireframe background */
+.card-forge-bg {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(251, 146, 60, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(251, 146, 60, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+/* ---- Step Numbers (forge animation, hero-style white) ---- */
+.forge-step-number {
+  position: relative;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-family: var(--font-geist-mono);
+}
+
+/* Glow behind step numbers (like hero forge words) */
+.forge-step-number::after {
+  content: "";
+  position: absolute;
+  left: -6px;
+  right: -6px;
+  bottom: -4px;
+  top: -4px;
+  z-index: -1;
+  border-radius: 4px;
+  opacity: 0.4;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 255, 255, 0.5), transparent 70%);
+  animation: ember-breathe 3s ease-in-out infinite;
+}
+
+.dark .forge-step-number::after {
+  opacity: 0.5;
+  background: radial-gradient(ellipse 80% 60% at 50% 50%, rgba(255, 255, 255, 0.35), transparent 70%);
+  animation: ember-breathe-dark 3s ease-in-out infinite;
+}
+
+/* Legacy golden step-number kept for any other use; How it works uses ForgeStepNumber */
+.step-number {
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  font-weight: 800;
+  font-family: var(--font-geist-mono);
+  background: linear-gradient(165deg, #d4af37 0%, #f4d03f 25%, #c9a227 50%, #b8860b 75%, #daa520 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  text-shadow: 0 0 20px rgba(251, 146, 60, 0.3);
+  transition: all 0.4s ease;
+}
+
+.dark .step-number {
+  background: linear-gradient(165deg, #e8c547 0%, #f5d76e 25%, #d4af37 50%, #c9a227 75%, #f4d03f 100%);
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+.step-item:hover .step-number {
+  filter: drop-shadow(0 0 12px rgba(251, 146, 60, 0.5));
+}
+
+/* Step connecting line – sits below number row, above step titles */
+.step-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 2px;
+  pointer-events: none;
+}
+
+.step-line::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), rgba(255, 255, 255, 0.2), transparent);
+  opacity: 0.6;
+}
+
+.dark .step-line::before {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.1), transparent);
+}
+
+/* Dot: left-to-right only, blop in/out, size grows to mid then shrinks */
+.step-line::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.3);
+  animation: step-dot-flow 4s linear infinite;
+  transform-origin: center center;
+}
+
+.dark .step-line::after {
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 0 12px rgba(255, 255, 255, 0.2);
+}
+
+@keyframes step-dot-flow {
+  /* Blop in at start */
+  0% {
+    left: 0;
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  6% {
+    left: 0;
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  /* Move left to middle, dot grows to max */
+  50% {
+    left: calc(50% - 4px);
+    opacity: 1;
+    transform: scale(1.5);
+  }
+  /* Move middle to right, dot shrinks */
+  94% {
+    left: calc(100% - 8px);
+    opacity: 1;
+    transform: scale(1.1);
+  }
+  /* Blop out at end */
+  100% {
+    left: calc(100% - 8px);
+    opacity: 0;
+    transform: scale(0.4);
+  }
+}
+
+.step-item {
+  transition: all 0.3s ease;
+}
+
+.step-item:hover {
+  transform: translateY(-2px);
+}
+
+/* ---- CTA Forge Section (heat/vignette/embers moved to .page-home-effects) ---- */
+.section-cta-forge {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Heat and vignette now at page level - CTA just needs content styling */
+.page-home .section-cta-forge::before,
+.page-home .section-cta-forge::after {
+  display: none;
+}
+
+/* Embers / smoke: organic rise + horizontal drift (stream, not straight lines) */
+.ember-particle {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  bottom: 0;
+  left: 50%;
+  background: rgba(255, 200, 120, 0.85);
+  border-radius: 50%;
+  box-shadow: 0 0 8px rgba(255, 170, 0, 0.6), 0 0 16px rgba(255, 69, 0, 0.25);
+  animation: ember-rise 8s ease-out infinite;
+  animation-duration: var(--ember-duration, 8s);
+  animation-delay: var(--ember-delay, 0s);
+  pointer-events: none;
+}
+
+/* Slightly larger, softer “smoke” particles */
+.ember-particle.ember-smoke {
+  width: 5px;
+  height: 5px;
+  background: rgba(255, 180, 100, 0.35);
+  box-shadow: 0 0 12px rgba(255, 140, 60, 0.3);
+}
+
+/* Rise + drift left (stream curve) */
+.ember-particle.ember-drift-1 {
+  animation-name: ember-rise-drift-1;
+}
+
+/* Rise + drift right */
+.ember-particle.ember-drift-2 {
+  animation-name: ember-rise-drift-2;
+}
+
+/* Rise + S-curve (left then right) */
+.ember-particle.ember-drift-3 {
+  animation-name: ember-rise-drift-3;
+}
+
+@keyframes ember-rise {
+  0% {
+    transform: translate(-50%, 0) scale(0.6);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.9;
+  }
+  85% {
+    opacity: 0.25;
+  }
+  100% {
+    transform: translate(-50%, -100vh) scale(0.4);
+    opacity: 0;
+  }
+}
+
+/* Smoke-like path: rise with horizontal wobble (no straight lines) */
+@keyframes ember-rise-drift-1 {
+  0% {
+    transform: translate(-50%, 0) translateX(0) scale(0.7);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.85;
+  }
+  25% {
+    transform: translate(-50%, -25vh) translateX(-12px) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50vh) translateX(-5px) scale(0.95);
+  }
+  75% {
+    transform: translate(-50%, -75vh) translateX(-18px) scale(0.6);
+  }
+  90% {
+    opacity: 0.2;
+  }
+  100% {
+    transform: translate(-50%, -100vh) translateX(-10px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes ember-rise-drift-2 {
+  0% {
+    transform: translate(-50%, 0) translateX(0) scale(0.7);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.85;
+  }
+  25% {
+    transform: translate(-50%, -25vh) translateX(15px) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50vh) translateX(8px) scale(0.95);
+  }
+  75% {
+    transform: translate(-50%, -75vh) translateX(20px) scale(0.6);
+  }
+  90% {
+    opacity: 0.2;
+  }
+  100% {
+    transform: translate(-50%, -100vh) translateX(12px) scale(0.3);
+    opacity: 0;
+  }
+}
+
+@keyframes ember-rise-drift-3 {
+  0% {
+    transform: translate(-50%, 0) translateX(0) scale(0.7);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.85;
+  }
+  25% {
+    transform: translate(-50%, -25vh) translateX(-15px) scale(1);
+  }
+  50% {
+    transform: translate(-50%, -50vh) translateX(10px) scale(0.95);
+  }
+  75% {
+    transform: translate(-50%, -75vh) translateX(-8px) scale(0.6);
+  }
+  90% {
+    opacity: 0.2;
+  }
+  100% {
+    transform: translate(-50%, -100vh) translateX(0) scale(0.3);
+    opacity: 0;
+  }
+}
+
+/* Heat distortion: very subtle wavering (heat waves) */
+.cta-heat-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 180, 80, 0.02) 25%,
+    transparent 50%,
+    rgba(255, 180, 80, 0.015) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: heat-waver 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes heat-waver {
+  0%, 100% { background-position: 0% 50%; opacity: 0.6; }
+  50% { background-position: 100% 50%; opacity: 1; }
+}
+
+/* CTA button = hot metal: brightest, most glowing element */
+.btn-forge-cta {
+  position: relative;
+  padding: 1rem 2.5rem;
+  font-weight: 600;
+  background: linear-gradient(180deg, #2a2a2a 0%, #1a1a1a 100%);
+  color: white;
+  transition: all 0.4s ease;
+  /* Intense orange underglow – the hot metal */
+  box-shadow:
+    0 0 20px rgba(255, 170, 0, 0.5),
+    0 0 40px rgba(255, 69, 0, 0.35),
+    0 0 60px rgba(255, 69, 0, 0.2),
+    inset 0 1px 0 rgba(255, 200, 150, 0.15);
+}
+
+.dark .btn-forge-cta {
+  background: linear-gradient(180deg, #333 0%, #1a1a1a 100%);
+  box-shadow:
+    0 0 24px rgba(255, 170, 0, 0.55),
+    0 0 48px rgba(255, 69, 0, 0.4),
+    0 0 72px rgba(255, 69, 0, 0.25),
+    inset 0 1px 0 rgba(255, 200, 150, 0.2);
+}
+
+.btn-forge-cta:hover {
+  box-shadow:
+    0 0 30px rgba(255, 170, 0, 0.7),
+    0 0 60px rgba(255, 69, 0, 0.5),
+    0 0 90px rgba(255, 69, 0, 0.3),
+    inset 0 1px 0 rgba(255, 220, 180, 0.25);
+  animation: btn-forge-pulse 2s ease-in-out infinite;
+}
+
+@keyframes btn-forge-pulse {
+  0%, 100% {
+    box-shadow:
+      0 0 30px rgba(255, 170, 0, 0.7),
+      0 0 60px rgba(255, 69, 0, 0.5),
+      0 0 90px rgba(255, 69, 0, 0.3),
+      inset 0 1px 0 rgba(255, 220, 180, 0.25);
+  }
+  50% {
+    box-shadow:
+      0 0 40px rgba(255, 170, 0, 0.8),
+      0 0 80px rgba(255, 69, 0, 0.55),
+      0 0 110px rgba(255, 69, 0, 0.35),
+      inset 0 1px 0 rgba(255, 230, 200, 0.3);
+  }
+}
+
+/* Outline button – forge accent (secondary actions, add-more, etc.) */
+.btn-forge-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  background: transparent;
+  border: 1px solid rgba(107, 114, 128, 0.4);
+  transition: all 0.25s ease;
+}
+
+.btn-forge-outline:hover {
+  border-color: rgba(251, 146, 60, 0.5);
+  color: var(--foreground);
+  box-shadow: 0 0 12px rgba(251, 146, 60, 0.12);
+}
+
+.btn-forge-outline:focus {
+  outline: none;
+  border-color: rgba(251, 146, 60, 0.6);
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.2);
+}
+
+.dark .btn-forge-outline {
+  border-color: rgba(107, 114, 128, 0.35);
+}
+
+.dark .btn-forge-outline:hover {
+  border-color: rgba(251, 146, 60, 0.45);
+  box-shadow: 0 0 16px rgba(251, 146, 60, 0.15);
+}
+
+.dark .btn-forge-outline:focus {
+  border-color: rgba(251, 146, 60, 0.5);
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.15);
+}
+
+/* Secondary button – subtle fill (Settings, View, etc.); supports text-red override for destructive */
+.btn-forge-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  transition: all 0.25s ease;
+}
+
+.btn-forge-secondary:hover {
+  background: rgba(251, 146, 60, 0.08);
+  border-color: rgba(251, 146, 60, 0.4);
+  box-shadow: 0 0 12px rgba(251, 146, 60, 0.1);
+}
+
+.btn-forge-secondary:focus {
+  outline: none;
+  border-color: rgba(251, 146, 60, 0.5);
+  box-shadow: 0 0 0 2px rgba(251, 146, 60, 0.15);
+}
+
+.dark .btn-forge-secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(75, 85, 99, 0.4);
+}
+
+.dark .btn-forge-secondary:hover {
+  background: rgba(251, 146, 60, 0.06);
+  border-color: rgba(251, 146, 60, 0.35);
+}
+
+/* CTA wireframe removed (no arrow/anvil pattern on CTA background) */
+
+/* ---- Stats Bar ---- */
+.stat-item {
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+}
+
+.stat-glow {
+  position: absolute;
+  inset: -20px;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.06) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.dark .stat-glow {
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.06) 0%, transparent 70%);
+}
+
+.stat-item:hover .stat-glow {
+  opacity: 1;
+}
+
+.stat-divider {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.15), transparent);
+  opacity: 0.8;
+}
+
+.dark .stat-divider {
+  background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.15), transparent);
+}
+
+.stat-value-highlight {
+  color: var(--foreground);
+}
+
+.dark .stat-value-highlight {
+  color: var(--foreground);
+}
+
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.cube-rotate {
+  animation: cube-rotate 4s ease-in-out infinite;
+}
+
+@keyframes cube-rotate {
+  0%, 100% { transform: rotateY(0deg) rotateX(0deg); }
+  25% { transform: rotateY(90deg) rotateX(10deg); }
+  50% { transform: rotateY(180deg) rotateX(0deg); }
+  75% { transform: rotateY(270deg) rotateX(-10deg); }
+}
+
+/* ========================================
+   Inner Pages - Forge Theme
+   ======================================== */
+
+/* Page wrapper: gradient background + animated grid (like home but lighter) */
+.page-inner-forge {
+  position: relative;
+  overflow: clip;
+  min-height: calc(100vh - 4rem);
+  background: linear-gradient(135deg, #EBE7E0 0%, #E0DCD4 50%, #EBE7E0 100%);
+}
+
+/* Optional: match body background; still fill viewport so background doesn't stop at content */
+.page-inner-forge--compact {
+  min-height: calc(100vh - 4rem);
+  background: var(--background);
+}
+
+/* Fixed to parent height, no page scroll (e.g. full-viewport mint page) */
+.page-inner-forge--no-scroll {
+  height: 100%;
+  min-height: 0;
+}
+
+.dark .page-inner-forge--compact {
+  background: var(--background);
+}
+
+.dark .page-inner-forge {
+  background: linear-gradient(155deg, #0f0d1a 0%, #141311 35%, #0a0812 70%, #000000 100%);
+}
+
+/* Fixed grid overlay */
+.page-inner-forge::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image:
+    linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  background-position: 0 0;
+  pointer-events: none;
+  animation: grid-drift 7s linear infinite;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.dark .page-inner-forge::before {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.045) 1px, transparent 1px);
+}
+
+/* Ambient effects: heat gradient, vignette, embers */
+.page-inner-effects {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  transition: opacity 0.5s ease-out;
+}
+
+/* Intensify effects during forging (minting) */
+.page-inner-forge--forging .page-inner-effects {
+  opacity: 1;
+}
+
+.page-inner-heat-gradient {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 50% at 50% 100%,
+    rgba(255, 170, 0, 0.2) 0%,
+    rgba(255, 69, 0, 0.12) 18%,
+    rgba(139, 0, 0, 0.06) 35%,
+    transparent 60%
+  );
+  transition: opacity 0.5s ease-out;
+}
+
+.dark .page-inner-heat-gradient {
+  background: radial-gradient(
+    ellipse 80% 50% at 50% 100%,
+    rgba(255, 170, 0, 0.25) 0%,
+    rgba(255, 69, 0, 0.15) 18%,
+    rgba(139, 0, 0, 0.08) 35%,
+    transparent 60%
+  );
+}
+
+/* Intensify heat gradient during forging */
+.page-inner-forge--forging .page-inner-heat-gradient {
+  background: radial-gradient(
+    ellipse 90% 60% at 50% 100%,
+    rgba(255, 170, 0, 0.45) 0%,
+    rgba(255, 69, 0, 0.32) 18%,
+    rgba(139, 0, 0, 0.18) 35%,
+    rgba(10, 14, 39, 0.1) 55%,
+    transparent 70%
+  );
+  animation: forge-heat-pulse 2.5s ease-in-out infinite;
+}
+
+.dark .page-inner-forge--forging .page-inner-heat-gradient {
+  background: radial-gradient(
+    ellipse 90% 60% at 50% 100%,
+    rgba(255, 170, 0, 0.5) 0%,
+    rgba(255, 69, 0, 0.38) 18%,
+    rgba(139, 0, 0, 0.22) 35%,
+    rgba(10, 14, 39, 0.15) 55%,
+    transparent 70%
+  );
+  animation: forge-heat-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes forge-heat-pulse {
+  0%, 100% {
+    opacity: 1;
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.15);
+  }
+}
+
+/* Heat shimmer overlay (like home CTA): subtle wavering blur; more prominent when forging */
+.page-inner-heat-shimmer {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 180, 80, 0.02) 25%,
+    transparent 50%,
+    rgba(255, 180, 80, 0.015) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: heat-waver 4s ease-in-out infinite;
+  pointer-events: none;
+  opacity: 0.4;
+}
+
+.page-inner-forge--forging .page-inner-heat-shimmer {
+  opacity: 0.85;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 180, 80, 0.08) 20%,
+    rgba(255, 200, 120, 0.06) 40%,
+    transparent 50%,
+    rgba(255, 180, 80, 0.06) 70%,
+    rgba(255, 200, 120, 0.04) 90%,
+    transparent 100%
+  );
+  animation: heat-waver 2.5s ease-in-out infinite;
+}
+
+.page-inner-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 120% 120% at 50% 50%,
+    transparent 40%,
+    rgba(0, 0, 0, 0.06) 65%,
+    rgba(0, 0, 0, 0.18) 100%
+  );
+}
+
+.dark .page-inner-vignette {
+  background: radial-gradient(
+    ellipse 120% 120% at 50% 50%,
+    transparent 30%,
+    rgba(0, 0, 0, 0.2) 60%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+}
+
+/* Pulse the vignette during forging for dramatic effect */
+.page-inner-forge--forging .page-inner-vignette {
+  animation: forge-vignette-pulse 3s ease-in-out infinite;
+}
+
+@keyframes forge-vignette-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.page-inner-effects .ember-particle {
+  position: absolute;
+}
+
+/* Intensify embers during forging: brighter, faster animation */
+.page-inner-forge--forging .ember-particle {
+  background: rgba(255, 200, 120, 1);
+  box-shadow: 0 0 12px rgba(255, 170, 0, 0.8), 0 0 24px rgba(255, 69, 0, 0.4);
+  animation-duration: calc(var(--ember-duration, 9s) * 0.7) !important;
+  filter: brightness(1.3);
+}
+
+.page-inner-forge--forging .ember-particle.ember-smoke {
+  background: rgba(255, 180, 100, 0.55);
+  box-shadow: 0 0 16px rgba(255, 140, 60, 0.5);
+}
+
+/* ---- Forge-themed form inputs ---- */
+.input-forge {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  padding: 0.75rem 1rem;
+  color: var(--foreground);
+  transition: all 0.3s ease;
+  font-size: 1rem;
+}
+
+/* Remove native number steppers (they don't match Forge theme) */
+.input-forge[type="number"]::-webkit-outer-spin-button,
+.input-forge[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input-forge[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.input-forge::placeholder {
+  color: rgba(156, 163, 175, 0.6);
+}
+
+.input-forge:focus {
+  outline: none;
+  border-color: rgba(251, 146, 60, 0.6);
+  box-shadow:
+    0 0 0 2px rgba(251, 146, 60, 0.15),
+    0 0 20px rgba(251, 146, 60, 0.1);
+}
+
+.dark .input-forge {
+  background: rgba(255, 255, 255, 0.02);
+  border-color: rgba(107, 114, 128, 0.25);
+}
+
+.dark .input-forge:focus {
+  border-color: rgba(251, 146, 60, 0.5);
+  box-shadow:
+    0 0 0 2px rgba(251, 146, 60, 0.12),
+    0 0 24px rgba(251, 146, 60, 0.08);
+}
+
+/* Phase end highlight: outline only, plays every time user clicks + Add phase */
+.phase-end-highlight-forge {
+  animation: phase-end-highlight-outline 2.5s ease-in-out;
+  padding: 0.25rem;
+  margin: -0.25rem;
+  border-radius: 0.5rem;
+  border: 2px solid transparent;
+}
+
+@keyframes phase-end-highlight-outline {
+  0% {
+    border-color: rgba(251, 146, 60, 0);
+    outline: 2px solid rgba(251, 146, 60, 0);
+    outline-offset: 2px;
+  }
+  12% {
+    border-color: rgba(251, 146, 60, 0.9);
+    outline: 2px solid rgba(251, 146, 60, 0.5);
+    outline-offset: 2px;
+  }
+  25% {
+    border-color: rgba(251, 146, 60, 0.7);
+    outline: 2px solid rgba(251, 146, 60, 0.35);
+    outline-offset: 2px;
+  }
+  40% {
+    border-color: rgba(251, 146, 60, 0.85);
+    outline: 2px solid rgba(251, 146, 60, 0.4);
+    outline-offset: 2px;
+  }
+  55% {
+    border-color: rgba(251, 146, 60, 0.6);
+    outline: 2px solid rgba(251, 146, 60, 0.25);
+    outline-offset: 2px;
+  }
+  100% {
+    border-color: rgba(251, 146, 60, 0.5);
+    outline: 2px solid rgba(251, 146, 60, 0.2);
+    outline-offset: 2px;
+  }
+}
+
+.dark .phase-end-highlight-forge {
+  animation: phase-end-highlight-outline-dark 2.5s ease-in-out;
+}
+
+@keyframes phase-end-highlight-outline-dark {
+  0% {
+    border-color: rgba(251, 146, 60, 0);
+    outline: 2px solid rgba(251, 146, 60, 0);
+    outline-offset: 2px;
+  }
+  12% {
+    border-color: rgba(251, 146, 60, 0.85);
+    outline: 2px solid rgba(251, 146, 60, 0.45);
+    outline-offset: 2px;
+  }
+  25% {
+    border-color: rgba(251, 146, 60, 0.65);
+    outline: 2px solid rgba(251, 146, 60, 0.3);
+    outline-offset: 2px;
+  }
+  40% {
+    border-color: rgba(251, 146, 60, 0.8);
+    outline: 2px solid rgba(251, 146, 60, 0.35);
+    outline-offset: 2px;
+  }
+  55% {
+    border-color: rgba(251, 146, 60, 0.55);
+    outline: 2px solid rgba(251, 146, 60, 0.2);
+    outline-offset: 2px;
+  }
+  100% {
+    border-color: rgba(251, 146, 60, 0.45);
+    outline: 2px solid rgba(251, 146, 60, 0.15);
+    outline-offset: 2px;
+  }
+}
+
+/* Select dropdown forge styling */
+.input-forge option {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+/* ---- Forge interactive card (for selectable items like collections) ---- */
+.card-forge-interactive {
+  position: relative;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  background: rgba(255, 255, 255, 0.02);
+  transition: all 0.35s ease;
+  overflow: hidden;
+}
+
+.card-forge-interactive::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 0%,
+    rgba(255, 180, 80, 0.03) 25%,
+    transparent 50%,
+    rgba(255, 180, 80, 0.02) 75%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+
+.card-forge-interactive:hover {
+  border-color: rgba(251, 146, 60, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 0 24px rgba(251, 146, 60, 0.12), 0 0 48px rgba(245, 158, 11, 0.06);
+}
+
+.dark .card-forge-interactive {
+  border-color: rgba(75, 85, 99, 0.3);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.dark .card-forge-interactive:hover {
+  border-color: rgba(251, 146, 60, 0.45);
+  box-shadow: 0 0 28px rgba(251, 146, 60, 0.15), 0 0 56px rgba(245, 158, 11, 0.08);
+}
+
+.card-forge-interactive:hover::before {
+  opacity: 1;
+  animation: card-heat-waver 2s ease-in-out infinite;
+}
+
+/* ---- Forge stat card ---- */
+.stat-forge {
+  position: relative;
+  border: 1px solid rgba(107, 114, 128, 0.25);
+  background: rgba(255, 255, 255, 0.03);
+  padding: 1.25rem;
+  transition: all 0.3s ease;
+  overflow: hidden;
+}
+
+.stat-forge::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(251, 146, 60, 0.3), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.stat-forge:hover {
+  border-color: rgba(251, 146, 60, 0.3);
+  transform: translateY(-2px);
+}
+
+.stat-forge:hover::after {
+  opacity: 1;
+}
+
+.dark .stat-forge {
+  border-color: rgba(75, 85, 99, 0.25);
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.dark .stat-forge:hover {
+  border-color: rgba(251, 146, 60, 0.25);
+}
+
+/* ---- Forge tab (active tab bar) ---- */
+.tab-forge {
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: all 0.3s ease;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  position: relative;
+}
+
+.tab-forge-active {
+  border-bottom-color: rgba(251, 146, 60, 0.7);
+  color: var(--foreground);
+  font-weight: 500;
+}
+
+.tab-forge-active::after {
+  content: "";
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: rgba(251, 146, 60, 0.7);
+  box-shadow: 0 0 12px rgba(251, 146, 60, 0.3);
+}
+
+.dark .tab-forge-active {
+  border-bottom-color: rgba(251, 146, 60, 0.6);
+}
+
+.dark .tab-forge-active::after {
+  background: rgba(251, 146, 60, 0.6);
+  box-shadow: 0 0 12px rgba(251, 146, 60, 0.25);
+}
+
+.tab-forge-inactive {
+  color: rgba(156, 163, 175, 0.7);
+}
+
+.tab-forge-inactive:hover {
+  color: var(--foreground);
+}
+
+/* ---- Drop page: mint card outline (open = green glow, closed = red) ---- */
+.mint-card-open {
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4), 0 0 20px rgba(34, 197, 94, 0.15);
+  animation: mint-card-glow 2s ease-in-out infinite;
+}
+
+.dark .mint-card-open {
+  border-color: rgba(74, 222, 128, 0.5);
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35), 0 0 24px rgba(74, 222, 128, 0.2);
+  animation: mint-card-glow-dark 2s ease-in-out infinite;
+}
+
+@keyframes mint-card-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4), 0 0 20px rgba(34, 197, 94, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.6), 0 0 28px rgba(34, 197, 94, 0.25);
+  }
+}
+
+@keyframes mint-card-glow-dark {
+  0%, 100% {
+    box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.35), 0 0 24px rgba(74, 222, 128, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 2px rgba(74, 222, 128, 0.5), 0 0 32px rgba(74, 222, 128, 0.3);
+  }
+}
+
+.mint-card-closed {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25);
+}
+
+.dark .mint-card-closed {
+  border-color: rgba(248, 113, 113, 0.4);
+  box-shadow: 0 0 0 1px rgba(248, 113, 113, 0.2);
+}
+
+/* Scroll-to-top button — forge theme (fixed bottom-right) */
+.scroll-to-top-forge:hover {
+  box-shadow: 0 0 24px rgba(251, 146, 60, 0.5), 0 0 12px rgba(251, 146, 60, 0.3);
+}
+
+.dark .scroll-to-top-forge:hover {
+  box-shadow: 0 0 24px rgba(251, 146, 60, 0.4), 0 0 12px rgba(251, 146, 60, 0.25);
+}
+
+/* ---- Forge file upload zone ---- */
+.upload-forge {
+  border: 1px dashed rgba(107, 114, 128, 0.35);
+  padding: 2rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.015);
+}
+
+.upload-forge:hover {
+  border-color: rgba(251, 146, 60, 0.4);
+  background: rgba(251, 146, 60, 0.02);
+}
+
+.dark .upload-forge {
+  border-color: rgba(75, 85, 99, 0.35);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.dark .upload-forge:hover {
+  border-color: rgba(251, 146, 60, 0.3);
+  background: rgba(251, 146, 60, 0.015);
+}
+
+/* ---- Forge status banner ---- */
+.status-forge {
+  border: 1px solid rgba(251, 146, 60, 0.3);
+  background: rgba(251, 146, 60, 0.05);
+  padding: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.status-forge::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(251, 146, 60, 0.08) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: heat-waver 3s ease-in-out infinite;
+}
+
+.dark .status-forge {
+  border-color: rgba(251, 146, 60, 0.2);
+  background: rgba(251, 146, 60, 0.03);
+}
+
+/* ---- Forge royalty chip ---- */
+.chip-forge {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.chip-forge:hover {
+  border-color: rgba(251, 146, 60, 0.4);
+}
+
+.chip-forge-active {
+  background: rgba(251, 146, 60, 0.15);
+  border-color: rgba(251, 146, 60, 0.5);
+  color: rgb(251, 146, 60);
+}
+
+.dark .chip-forge-active {
+  background: rgba(251, 146, 60, 0.1);
+  border-color: rgba(251, 146, 60, 0.4);
+}
+
+/* ---- Back link forge style ---- */
+.back-link-forge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: rgba(156, 163, 175, 0.7);
+  transition: all 0.2s ease;
+}
+
+.back-link-forge:hover {
+  color: rgba(251, 146, 60, 0.8);
+}
+
+/* ---- Error banner forge ---- */
+.error-forge {
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  background: rgba(239, 68, 68, 0.05);
+  padding: 1rem;
+}
+
+.dark .error-forge {
+  border-color: rgba(239, 68, 68, 0.2);
+  background: rgba(239, 68, 68, 0.03);
+}
+
+/* ---- Forge loading spinner ---- */
+.spinner-forge {
+  display: inline-block;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 2px solid rgba(251, 146, 60, 0.2);
+  border-top-color: rgba(251, 146, 60, 0.8);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Forge divider ---- */
+.divider-forge {
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(107, 114, 128, 0.2), transparent);
+}
+
+.dark .divider-forge {
+  background: linear-gradient(90deg, transparent, rgba(107, 114, 128, 0.15), transparent);
+}
+
+/* ========================================
+   Wallet Adapter Overrides
+   ======================================== */
+
+/* Match btn-hero-primary style for consistency.
+   All overrides use !important to win against the wallet-adapter library
+   styles regardless of CSS chunk load-order in production builds. */
+.wallet-adapter-button-trigger {
+  @apply relative !px-6 !py-3 font-semibold text-white bg-gray-900 dark:bg-gray-100 dark:text-gray-900
+         transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2
+         dark:focus:ring-white dark:focus:ring-offset-gray-900 !rounded-none !h-auto !text-sm !font-medium;
+  box-shadow: 0 0 24px rgba(0,0,0,0.25);
+  line-height: normal !important;
+}
+
+.dark .wallet-adapter-button-trigger {
+  box-shadow: 0 0 24px rgba(255,255,255,0.2);
+}
+
+.wallet-adapter-button-trigger:hover {
+  @apply bg-gray-800 dark:bg-gray-200;
+  box-shadow:
+    0 0 30px rgba(255, 170, 0, 0.7),
+    0 0 60px rgba(255, 69, 0, 0.5),
+    0 0 90px rgba(255, 69, 0, 0.3),
+    inset 0 1px 0 rgba(255, 220, 180, 0.25);
+}
+
+.dark .wallet-adapter-button-trigger:hover {
+  box-shadow:
+    0 0 30px rgba(255, 170, 0, 0.7),
+    0 0 60px rgba(255, 69, 0, 0.5),
+    0 0 90px rgba(255, 69, 0, 0.3),
+    inset 0 1px 0 rgba(255, 220, 180, 0.25);
+}
+
+.wallet-adapter-button-trigger:not(:disabled):hover {
+  @apply bg-gray-800 dark:bg-gray-200;
+}
+
+/* Modal styling */
+.wallet-adapter-modal-wrapper {
+  @apply !bg-[#EBE7E0] dark:!bg-[#141311] !rounded-none;
+}
+
+.wallet-adapter-modal-title {
+  @apply !text-gray-900 dark:!text-gray-100 !font-bold;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button {
+  @apply !text-gray-900 dark:!text-gray-100 !rounded-none;
+  line-height: normal !important;
+  height: auto !important;
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.75rem !important;
+}
+
+.wallet-adapter-modal-list .wallet-adapter-button:hover {
+  @apply !bg-gray-100 dark:!bg-gray-800;
+}
+
+/* Close button */
+.wallet-adapter-modal-button-close {
+  @apply !rounded-none;
+}
+
+/* Dropdown */
+.wallet-adapter-dropdown-list {
+  @apply !bg-[#EBE7E0] dark:!bg-[#141311] !rounded-none;
+}
+
+.wallet-adapter-dropdown-list-item {
+  @apply !rounded-none;
+}
+
+/* Overlay */
+.wallet-adapter-modal-overlay {
+  @apply !bg-black/50;
+}
+
+/* ========================================
+   Collection Settings Panel Animation
+   ======================================== */
+
+@keyframes settings-expand {
+  0% {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-20px);
+    box-shadow: 0 0 0 rgba(251, 146, 60, 0);
+  }
+  40% {
+    box-shadow: 0 0 30px rgba(251, 146, 60, 0.3), 0 0 60px rgba(251, 146, 60, 0.15), inset 0 0 20px rgba(251, 146, 60, 0.05);
+  }
+  75% {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
+    box-shadow: 0 0 25px rgba(251, 146, 60, 0.25), 0 0 50px rgba(251, 146, 60, 0.12), inset 0 0 15px rgba(251, 146, 60, 0.04);
+  }
+  88% {
+    transform: translateY(-4px);
+    box-shadow: 0 0 20px rgba(251, 146, 60, 0.2), 0 0 40px rgba(251, 146, 60, 0.1), inset 0 0 10px rgba(251, 146, 60, 0.03);
+  }
+  100% {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
+    box-shadow: 0 0 0 rgba(251, 146, 60, 0);
+  }
+}
+
+@keyframes settings-collapse {
+  0% {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0) scaleY(1);
+    box-shadow: 0 0 20px rgba(251, 146, 60, 0.2), 0 0 40px rgba(251, 146, 60, 0.1);
+  }
+  20% {
+    transform: translateY(3px) scaleY(0.99);
+    box-shadow: 0 0 15px rgba(251, 146, 60, 0.18), 0 0 30px rgba(251, 146, 60, 0.09);
+  }
+  50% {
+    box-shadow: 0 0 10px rgba(251, 146, 60, 0.15), 0 0 20px rgba(251, 146, 60, 0.08);
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-30px) scaleY(0.95);
+    box-shadow: 0 0 0 rgba(251, 146, 60, 0);
+  }
+}
+
+.settings-panel-expand {
+  animation: settings-expand 0.55s cubic-bezier(0.34, 1.1, 0.64, 1) forwards;
+}
+
+.settings-panel-collapse {
+  animation: settings-collapse 0.4s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+}
+
+.dark .settings-panel-expand {
+  animation: settings-expand-dark 0.55s cubic-bezier(0.34, 1.1, 0.64, 1) forwards;
+}
+
+.dark .settings-panel-collapse {
+  animation: settings-collapse-dark 0.4s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+}
+
+@keyframes settings-expand-dark {
+  0% {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-20px);
+    box-shadow: 0 0 0 rgba(251, 146, 60, 0);
+  }
+  40% {
+    box-shadow: 0 0 35px rgba(251, 146, 60, 0.35), 0 0 70px rgba(251, 146, 60, 0.18), inset 0 0 25px rgba(251, 146, 60, 0.06);
+  }
+  75% {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
+    box-shadow: 0 0 30px rgba(251, 146, 60, 0.3), 0 0 60px rgba(251, 146, 60, 0.15), inset 0 0 20px rgba(251, 146, 60, 0.05);
+  }
+  88% {
+    transform: translateY(-4px);
+    box-shadow: 0 0 25px rgba(251, 146, 60, 0.25), 0 0 50px rgba(251, 146, 60, 0.12), inset 0 0 15px rgba(251, 146, 60, 0.04);
+  }
+  100% {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0);
+    box-shadow: 0 0 0 rgba(251, 146, 60, 0);
+  }
+}
+
+@keyframes settings-collapse-dark {
+  0% {
+    opacity: 1;
+    max-height: 2000px;
+    transform: translateY(0) scaleY(1);
+    box-shadow: 0 0 25px rgba(251, 146, 60, 0.25), 0 0 50px rgba(251, 146, 60, 0.12);
+  }
+  20% {
+    transform: translateY(3px) scaleY(0.99);
+    box-shadow: 0 0 20px rgba(251, 146, 60, 0.22), 0 0 40px rgba(251, 146, 60, 0.11);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(251, 146, 60, 0.18), 0 0 30px rgba(251, 146, 60, 0.1);
+  }
+  100% {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-30px) scaleY(0.95);
+    box-shadow: 0 0 0 rgba(251, 146, 60, 0);
+  }
+}
+
+/* ========================================
+   Expandable Card Animation
+   ======================================== */
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    max-height: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    max-height: 1000px;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out forwards;
+}
+
+/* ========================================
+   Bounce Subtle Animation
+   ======================================== */
+
+@keyframes bounce-subtle {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.animate-bounce-subtle {
+  animation: bounce-subtle 2s ease-in-out infinite;
+}
+
+/* ========================================
+   Smooth Fade Out Animation
+   ======================================== */
+
+@keyframes fade-out-scale {
+  0% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  50% {
+    transform: scale(0.95) translateY(-5px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.9) translateY(-10px);
+  }
+}
+
+.animate-fade-out-scale {
+  animation: fade-out-scale 0.4s ease-out forwards;
+}
