@@ -38,7 +38,7 @@ import { ForgeNumberInput } from '@/components/ForgeNumberInput';
 import { IconVRM, IconGLB, Icon3DCube } from '@/components/AssetIcons';
 import { MintConfirmModal, type MintConfirmDetails } from '@/components/MintConfirmModal';
 import { TransactionConfirmModal, buildSaveSettingsTransaction } from '@/components/TransactionConfirmModal';
-import { TransactionProgressModal, getPublicMintSteps } from '@/components/TransactionProgressModal';
+import { TransactionProgressModal, getPublicMintSteps, getCandyMachineMintSteps } from '@/components/TransactionProgressModal';
 import { AllowlistModal } from '@/components/AllowlistModal';
 import { parseSolanaError } from '@/lib/solanaErrors';
 import type { VRMMetadata } from '@/lib/vrmParser';
@@ -469,11 +469,12 @@ export default function DropPage() {
   const [minting, setMinting] = useState(false);
   const [lastMintedAddress, setLastMintedAddress] = useState<string | null>(null);
   const [mintConfirm, setMintConfirm] = useState<MintConfirmDetails | null>(null);
-  type DropMintPhase = '' | 'payment' | 'minting' | 'verifying' | 'success';
+  type DropMintPhase = '' | 'preparing' | 'allowlist' | 'payment' | 'minting' | 'confirming' | 'verifying' | 'success';
   const [mintPhase, setMintPhase] = useState<DropMintPhase>('');
   const [mintError, setMintError] = useState<string | null>(null);
   const [mintErrorDetails, setMintErrorDetails] = useState<string | null>(null);
   const [mintIsCandyMachine, setMintIsCandyMachine] = useState(false);
+  const [mintHasAllowlist, setMintHasAllowlist] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('details');
@@ -1059,6 +1060,8 @@ export default function DropPage() {
 
         const activePhase = activePhaseIdx != null ? mintPhases[activePhaseIdx] : null;
         const allowlistAddresses = activePhase?.allowlistAddresses ?? mintConfig.allowlistAddresses;
+        const hasAllowlist = !!(allowlistAddresses && allowlistAddresses.filter(Boolean).length > 0);
+        setMintHasAllowlist(hasAllowlist);
 
         const candidateTokenMints = [
           ...(activePhase?.tokenHolderMints ?? []),
@@ -1069,13 +1072,13 @@ export default function DropPage() {
         const phasePart = activePhaseIdx != null ? ` — Phase ${activePhaseIdx + 1}` : '';
         const memo = `Minting ${collection.name || 'NFT'}${phasePart} — ${price > 0 ? `${price} SOL` : 'Free'}`;
 
-        setMintPhase('minting');
         const { mintAddress: cmMintAddress } = await mintFromCandyMachine(umi, {
           candyMachineAddress: mintConfig.candyMachineAddress,
           phaseIndex: activePhaseIdx,
           userTokenMints: candidateTokenMints,
           allowlistAddresses: allowlistAddresses?.filter(Boolean),
           memo,
+          onProgress: (step) => setMintPhase(step),
         });
 
         setMintPhase('success');
@@ -1156,6 +1159,7 @@ export default function DropPage() {
     setMintPhase('');
     setMintError(null);
     setMintErrorDetails(null);
+    setMintHasAllowlist(false);
   }
 
   // ── Save mint config (pause / close / resume) ─────────────────────────
@@ -2836,13 +2840,16 @@ export default function DropPage() {
         title="Minting NFT"
         steps={
           mintIsCandyMachine
-            ? [{ id: 'minting', label: 'Minting your NFT', description: 'Creating your unique NFT on the Solana blockchain.', walletPrompt: true }]
+            ? getCandyMachineMintSteps({ hasAllowlist: mintHasAllowlist })
             : getPublicMintSteps({ isFree: getCurrentPrice() === 0 })
         }
-        currentStepId={mintPhase || 'minting'}
+        currentStepId={mintPhase || 'preparing'}
         statusMessage={
+          mintPhase === 'preparing' ? 'Fetching collection state from the blockchain\u2026' :
+          mintPhase === 'allowlist' ? 'Submitting your allowlist proof\u2026 Approve in your wallet.' :
           mintPhase === 'payment' ? 'Sending payment\u2026 Approve in your wallet.' :
           mintPhase === 'minting' ? 'Creating your NFT on Solana\u2026 Approve in your wallet.' :
+          mintPhase === 'confirming' ? 'Waiting for the Solana network to confirm\u2026' :
           mintPhase === 'verifying' ? 'Verifying collection membership\u2026' :
           undefined
         }

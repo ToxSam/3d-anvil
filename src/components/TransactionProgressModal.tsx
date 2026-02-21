@@ -394,6 +394,28 @@ export function getPublicMintSteps(opts?: { isFree?: boolean }): ProgressStep[] 
   return [...PUBLIC_MINT_STEPS];
 }
 
+const CANDY_MACHINE_MINT_STEPS_BASE: ProgressStep[] = [
+  { id: 'preparing', label: 'Preparing transaction', description: 'Fetching collection state from the blockchain.' },
+  { id: 'minting', label: 'Minting your NFT', description: 'Creating your unique NFT on the Solana blockchain.', walletPrompt: true },
+  { id: 'confirming', label: 'Confirming on blockchain', description: 'Waiting for the Solana network to finalize your transaction.' },
+];
+
+const ALLOWLIST_STEP: ProgressStep = {
+  id: 'allowlist',
+  label: 'Verifying allowlist',
+  description: 'Submitting your merkle proof to the Candy Guard on-chain.',
+  walletPrompt: true,
+};
+
+export function getCandyMachineMintSteps(opts?: { hasAllowlist?: boolean }): ProgressStep[] {
+  if (opts?.hasAllowlist) {
+    const steps = [...CANDY_MACHINE_MINT_STEPS_BASE];
+    steps.splice(1, 0, ALLOWLIST_STEP);
+    return steps;
+  }
+  return [...CANDY_MACHINE_MINT_STEPS_BASE];
+}
+
 export const CREATE_COLLECTION_STEPS: ProgressStep[] = [
   { id: 'uploading-image', label: 'Uploading collection image', description: 'Your image is being stored permanently on Arweave.' },
   { id: 'uploading-metadata', label: 'Storing metadata on Arweave', description: 'Collection name, description, and settings are saved permanently.' },

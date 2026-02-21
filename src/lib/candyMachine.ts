@@ -389,6 +389,9 @@ export async function createDropCandyMachine(
 
 // ── Mint ─────────────────────────────────────────────────────────────────────
 
+/** Progress phases fired via the onProgress callback during a Candy Machine mint. */
+export type CandyMachineMintProgress = 'preparing' | 'allowlist' | 'minting';
+
 export interface MintFromCMParams {
   candyMachineAddress: string;
   /**
@@ -408,6 +411,8 @@ export interface MintFromCMParams {
    * Example: "Minting My Collection #1 — 0.5 SOL"
    */
   memo?: string;
+  /** Called at each major step so the UI can update a progress indicator. */
+  onProgress?: (step: CandyMachineMintProgress) => void;
 }
 
 // Solana Memo Program — adds human-readable text visible in explorers and some wallets
@@ -417,9 +422,10 @@ export async function mintFromCandyMachine(
   umi: Umi,
   params: MintFromCMParams,
 ): Promise<{ mintAddress: string }> {
-  const { candyMachineAddress, allowlistAddresses, phaseIndex, userTokenMints, memo } = params;
+  const { candyMachineAddress, allowlistAddresses, phaseIndex, userTokenMints, memo, onProgress } = params;
   const cmPubkey = publicKey(candyMachineAddress);
 
+  onProgress?.('preparing');
   const cm = await fetchCandyMachineWithRetry(umi, cmPubkey);
   const candyGuard = await fetchCandyGuardWithRetry(umi, cm.mintAuthority);
 
@@ -429,9 +435,11 @@ export async function mintFromCandyMachine(
     : resolveGroupForMinter(candyGuard, phaseIndex ?? null, userTokenMints ?? []);
 
   if (allowlistAddresses && allowlistAddresses.length > 0) {
+    onProgress?.('allowlist');
     await proveAllowlist(umi, cm, candyGuard, allowlistAddresses, resolvedGroup ?? null);
   }
 
+  onProgress?.('minting');
   const nftMint = generateSigner(umi);
 
   const mintArgs = buildMintArgs(umi, candyGuard, resolvedGroup ?? null, allowlistAddresses);
