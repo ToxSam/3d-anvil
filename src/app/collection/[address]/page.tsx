@@ -13,11 +13,20 @@ import { CollectionSettingsForm } from '@/components/collection/CollectionSettin
 import { MintConfig } from '@/lib/types/mintConfig';
 import { useToast } from '@/components/Toast';
 import { uploadFileToArweave, uploadMetadataToArweave } from '@/lib/uploadToArweave';
-import { EXPLORER_URL, SOLANA_NETWORK, SOLANA_RPC_URL, isDropCollection, tryFetchJsonWithIrysGateway, resolveArweaveUrl } from '@/lib/constants';
-import { getMintsByCollection, getCollectionHolders, type HolderInfo } from '@/lib/das';
+import { EXPLORER_URL, SOLANA_NETWORK, isDropCollection, tryFetchJsonWithIrysGateway, resolveArweaveUrl } from '@/lib/constants';
+import { getCollectionAssets, getCollectionHolders, type HolderInfo, type DASAsset } from '@/lib/das';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { TransactionConfirmModal, buildUpdateCollectionTransaction } from '@/components/TransactionConfirmModal';
+
+type CollectionNFTItem = {
+  address: string;
+  name: string;
+  description?: string;
+  image?: string;
+  animationUrl?: string;
+  attributes?: Array<{ trait_type?: string; value?: string }>;
+};
 
 export default function CollectionPage() {
   const params = useParams();
@@ -27,7 +36,7 @@ export default function CollectionPage() {
   const router = useRouter();
 
   const [collection, setCollection] = useState<any>(null);
-  const [nfts, setNfts] = useState<any[]>([]);
+  const [nfts, setNfts] = useState<CollectionNFTItem[]>([]);
   const [holdersList, setHoldersList] = useState<HolderInfo[]>([]);
   const [holdersLoading, setHoldersLoading] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -155,67 +164,78 @@ export default function CollectionPage() {
   /**
    * Load all NFTs belonging to this collection.
    *
-   * Strategy:
-   *   1. Try DAS API (getAssetsByGroup) — works with Helius and compatible RPCs.
-   *   2. Fallback A: findAllByUpdateAuthority using the collection's update
-   *      authority, then filter by collection address.  This works because the
-   *      wallet that created the collection is usually the update authority of
-   *      the NFTs it mints.
-   *   3. Fallback B: If wallet is connected, findAllByCreator with the wallet
-   *      at position 0, then filter by collection address.
-   *   4. Fallback C: If wallet is connected, findAllByOwner — find any NFTs
-   *      owned by the wallet that reference this collection (catches cases
-   *      where the collection account expired on devnet).
-   *
-   * We accept both verified AND unverified collection references so NFTs still
-   * appear even when verifyCollection had a transient failure on devnet.
+   * Strategy (matches dashboard/creator DAS-first pattern):
+   *   1. DAS getCollectionAssets — full metadata including images in one RPC call.
+   *   2. Fallback A: Metaplex findAllByUpdateAuthority, filter by collection.
+   *   3. Fallback B: Metaplex findAllByCreator (if wallet connected).
+   *   4. Fallback C: Metaplex findAllByOwner (if wallet connected).
    */
   async function loadNFTs(
     collectionAddress: string,
     collectionNft?: any
   ) {
     try {
-      // ── 1. DAS API (preferred) ──────────────────────────────────────────
-      const mintAddresses = await getMintsByCollection(
-        SOLANA_RPC_URL,
-        collectionAddress
+      // ── 1. DAS API (preferred) — full metadata in one call, like dashboard ──
+      const dasResult = await getCollectionAssets(
+        collectionAddress,
+        1,
+        1000
       );
 
-      if (mintAddresses.length > 0) {
-        const loadedNfts = await Promise.allSettled(
-          mintAddresses.map(async (mint) => {
-            try {
-              return await metaplex.nfts().findByMint({
-                mintAddress: new PublicKey(mint),
-              });
-            } catch {
-              try {
-                return await metaplex.nfts().findByMint({
-                  mintAddress: new PublicKey(mint),
-                  loadJsonMetadata: false,
-                });
-              } catch {
-                return null;
-              }
+      if (dasResult?.items && dasResult.items.length > 0) {
+        const get3DModelUrl = (asset: DASAsset): string | undefined =>
+          asset.content?.links?.animation_url ||
+          asset.content?.files?.find(
+            (f) =>
+              f.mime?.startsWith('model/') ||
+              /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
+          )?.uri;
+
+        const itemResults = await Promise.allSettled(
+          dasResult.items.map(async (asset) => {
+            let image = resolveArweaveUrl(asset.content?.links?.image);
+            const animationUrl = resolveArweaveUrl(get3DModelUrl(asset));
+
+            // DAS sometimes hasn't indexed the image yet — fall back to JSON
+            if (!image && asset.content?.json_uri) {
+              const json = await tryFetchJsonWithIrysGateway(
+                asset.content.json_uri,
+              );
+              if (json) image = resolveArweaveUrl(json.image);
             }
-          })
+
+            return {
+              address: asset.id,
+              name:
+                asset.content?.metadata?.name || 'Unnamed',
+              description: asset.content?.metadata?.description,
+              image,
+              animationUrl,
+              attributes: asset.content?.metadata?.attributes as Array<{
+                trait_type?: string;
+                value?: string;
+              }>,
+            };
+          }),
         );
-        const resolved = loadedNfts
+
+        const resolved = itemResults
           .filter(
-            (r): r is PromiseFulfilledResult<any> =>
-              r.status === 'fulfilled' && r.value != null
+            (r): r is PromiseFulfilledResult<CollectionNFTItem> =>
+              r.status === 'fulfilled',
           )
           .map((r) => r.value);
+
         if (resolved.length > 0) {
           setNfts(resolved);
           return;
         }
       }
 
-      // ── Helper: filter NFTs that belong to this collection ─────────────
+      // ── 2–4. Metaplex fallbacks (when DAS unavailable) ───────────────────
       const collectionKey = new PublicKey(collectionAddress);
       const belongsToCollection = (nft: any) => {
-        if (nft.collectionDetails != null) return false; // skip collection NFTs
+        if (nft.collectionDetails != null) return false;
         return nft.collection?.address?.equals(collectionKey);
       };
 
@@ -223,11 +243,10 @@ export default function CollectionPage() {
         Promise.race([
           promise,
           new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms)
+            setTimeout(() => reject(new Error(`Timed out after ${ms}ms`)), ms),
           ),
         ]);
 
-      // ── 2. Fallback A: by update authority ──────────────────────────────
       const col = collectionNft || collection;
       const updateAuthority =
         col?.updateAuthorityAddress ||
@@ -242,19 +261,18 @@ export default function CollectionPage() {
             updateAuthority instanceof PublicKey
               ? updateAuthority
               : new PublicKey(updateAuthority.toString());
-
           const allByAuthority = await withTimeout(
-            metaplex.nfts().findAllByUpdateAuthority({ updateAuthority: authorityKey }),
-            15000
+            metaplex.nfts().findAllByUpdateAuthority({
+              updateAuthority: authorityKey,
+            }),
+            15000,
           );
-
           found = allByAuthority.filter(belongsToCollection);
         } catch (err) {
           console.warn('Fallback A (update authority) failed:', err);
         }
       }
 
-      // ── 3. Fallback B: by connected wallet as creator ──────────────────
       if (found.length === 0 && wallet.publicKey) {
         try {
           const allByCreator = await withTimeout(
@@ -262,33 +280,26 @@ export default function CollectionPage() {
               creator: wallet.publicKey,
               position: 0,
             }),
-            15000
+            15000,
           );
-
           found = allByCreator.filter(belongsToCollection);
         } catch (err) {
           console.warn('Fallback B (creator) failed:', err);
         }
       }
 
-      // ── 4. Fallback C: by connected wallet as owner ────────────────────
-      // This catches NFTs even when the collection account expired on devnet
       if (found.length === 0 && wallet.publicKey) {
         try {
           const allByOwner = await withTimeout(
-            metaplex.nfts().findAllByOwner({
-              owner: wallet.publicKey,
-            }),
-            15000
+            metaplex.nfts().findAllByOwner({ owner: wallet.publicKey }),
+            15000,
           );
-
           found = allByOwner.filter(belongsToCollection);
         } catch (err) {
           console.warn('Fallback C (owner) failed:', err);
         }
       }
 
-      // ── Load full JSON metadata for each NFT ───────────────────────────
       const loadedNfts = await Promise.allSettled(
         found.map(async (nft: any) => {
           try {
@@ -302,14 +313,23 @@ export default function CollectionPage() {
               return nft;
             }
           }
-        })
+        }),
       );
 
-      const resolved = loadedNfts
+      const resolved: CollectionNFTItem[] = loadedNfts
         .filter(
-          (r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled'
+          (r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled',
         )
-        .map((r) => r.value);
+        .map((r) => r.value)
+        .map((nft: any) => ({
+          address: (nft.mintAddress || nft.address)?.toString() ?? '',
+          name: nft.name || nft.json?.name || 'Unnamed',
+          description: nft.json?.description,
+          image: resolveArweaveUrl(nft.json?.image),
+          animationUrl: resolveArweaveUrl(nft.json?.animation_url),
+          attributes: nft.json?.attributes,
+        }))
+        .filter((n) => n.address);
 
       setNfts(resolved);
     } catch (error) {
@@ -764,15 +784,15 @@ export default function CollectionPage() {
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {nfts.map((nft: any, idx) => (
-                  <div key={nft.address?.toString() ?? idx} className="animate-fade-in" style={{animationDelay: `${idx * 30}ms`}}>
+                {nfts.map((nft, idx) => (
+                  <div key={nft.address ?? idx} className="animate-fade-in" style={{animationDelay: `${idx * 30}ms`}}>
                     <NFTCard
-                      address={(nft.mintAddress || nft.address)?.toString()}
-                      name={nft.name || nft.json?.name || 'Unnamed'}
-                      description={nft.json?.description}
-                      image={resolveArweaveUrl(nft.json?.image)}
-                      animationUrl={resolveArweaveUrl(nft.json?.animation_url)}
-                      attributes={nft.json?.attributes}
+                      address={nft.address}
+                      name={nft.name}
+                      description={nft.description}
+                      image={nft.image}
+                      animationUrl={nft.animationUrl}
+                      attributes={nft.attributes}
                     />
                   </div>
                 ))}
