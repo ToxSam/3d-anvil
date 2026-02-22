@@ -12,6 +12,7 @@ const SECTIONS = [
   { id: 'technology', label: 'Technology' },
   { id: 'formats', label: 'Supported Formats' },
   { id: 'open-source', label: 'Open Source' },
+  { id: 'who-behind', label: "Who's Behind" },
   { id: 'developers', label: 'For Developers' },
   { id: 'expect', label: 'What to Expect' },
   { id: 'faq', label: 'FAQ' },
@@ -71,7 +72,7 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: 'Is this on Mainnet or Devnet?',
-    a: 'Check the network badge in the top-right corner of the app. During testing and development we run on Devnet (free test SOL, no real money). When we go to production, the app will switch to Mainnet. Make sure your wallet matches whichever network the app is using.',
+    a: '3D Anvil is live on Solana Mainnet. Check the network badge in the top-right corner of the app to confirm. Make sure your wallet is set to Mainnet to mint and interact with real NFTs.',
   },
   {
     q: 'What happens if 3D Anvil shuts down?',
@@ -674,6 +675,121 @@ export default function AboutPage() {
               </div>
             </section>
 
+            {/* Who's Behind */}
+            <section id="who-behind">
+              <h2 className="text-title font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-6">
+                Who&apos;s Behind 3D Anvil
+              </h2>
+              <div className="space-y-4 text-body text-gray-600 dark:text-gray-400 leading-relaxed mb-8">
+                <p>
+                  3D Anvil was built by{' '}
+                  <a
+                    href="https://toxsam.com"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-orange-500 dark:text-orange-400 hover:underline"
+                  >
+                    ToxSam
+                  </a>
+                  — a developer and digital creator who&apos;s been deep in the NFT
+                  and virtual worlds space since 2018, back when most people
+                  still thought NFTs were a typo.
+                </p>
+                <p>
+                  You&apos;ve probably already used something he made. Cool Banana,
+                  Butter, Mushy among many other — some of the most widely used
+                  free avatars in the world — are his. That obsession with making
+                  3D identity accessible to everyone is the thread that runs
+                  through everything he builds.
+                </p>
+                <p>
+                  In 2020 he launched CryptoAvatars, the first platform
+                  to let creators mint VRM avatars on Ethereum. It evolved into
+                  VIPE (Virtual Persona), pushing the idea of truly ownable 3D
+                  identities across virtual worlds.
+                </p>
+                <p>
+                  He also developed{' '}
+                  <a
+                    href="https://www.opensourceavatars.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-orange-500 dark:text-orange-400 hover:underline"
+                  >
+                    OpenSourceAvatars.com
+                  </a>
+                  {' '}and{' '}
+                  <a
+                    href="https://www.opensource3dassets.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-orange-500 dark:text-orange-400 hover:underline"
+                  >
+                    OpenSource3DAssets.com
+                  </a>
+                  — free, interoperable 3D assets anyone can use across any
+                  world or platform.
+                </p>
+                <p>
+                  Both CryptoAvatars and VIPE eventually had to close. The
+                  ecosystem wasn&apos;t ready, the infrastructure was expensive,
+                  and Ethereum wasn&apos;t the friendliest place for this kind
+                  of experimentation.
+                </p>
+                <p>
+                  3D Anvil is what happens when you take all of that — the
+                  failures, the lessons, the deep conviction that 3D assets
+                  deserve a proper permanent home on-chain — and rebuild it from
+                  scratch on Solana. Leaner, open source, CC0, no platform fees.
+                  Less startup, more tool. Built by someone who&apos;s been trying
+                  to solve this problem for years.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-4">
+                <a
+                  href="https://x.com/toxsam"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-small font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-orange-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+                >
+                  <span aria-hidden>👁️</span> @toxsam on X
+                </a>
+                <a
+                  href="https://toxsam.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-small font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-orange-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+                >
+                  <span aria-hidden>👽</span> toxsam.com
+                </a>
+                <a
+                  href="https://github.com/ToxSam"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-small font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-orange-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+                >
+                  <span aria-hidden>💻</span> github.com/ToxSam
+                </a>
+                <a
+                  href="https://www.opensourceavatars.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-small font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-orange-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+                >
+                  <span aria-hidden>🐻</span> Open Source Avatars
+                </a>
+                <a
+                  href="https://www.opensource3dassets.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-small font-medium border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:border-orange-400 hover:text-orange-500 dark:hover:text-orange-400 transition-colors"
+                >
+                  <span aria-hidden>🥩</span> Open Source 3D Assets
+                </a>
+              </div>
+            </section>
+
             {/* For Developers */}
             <section id="developers">
               <h2 className="text-title font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-6">
@@ -803,16 +919,15 @@ export default function AboutPage() {
               </div>
 
               <div className="space-y-4">
-                <div className="p-5 rounded-lg border-l-2 border-amber-400 bg-amber-50/50 dark:bg-amber-950/20">
+                <div className="p-5 rounded-lg border-l-2 border-green-400 bg-green-50/50 dark:bg-green-950/20">
                   <h3 className="text-body font-bold text-gray-900 dark:text-gray-100 mb-2">
-                    Currently on Devnet
+                    Live on Mainnet
                   </h3>
                   <p className="text-small text-gray-600 dark:text-gray-400 leading-relaxed">
-                    The app is currently running on Solana Devnet for testing.
-                    Devnet SOL has no real value — you can get free test SOL from
-                    a faucet. Everything you create on Devnet is separate from
-                    Mainnet. When we&apos;re ready for production, we&apos;ll
-                    switch to Mainnet and make an announcement.
+                    3D Anvil is live on Solana Mainnet. Real mints, real NFTs,
+                    real 3D assets on-chain. Check the network badge in the
+                    top-right corner to confirm you&apos;re on Mainnet and your
+                    wallet matches.
                   </p>
                 </div>
 
@@ -840,6 +955,17 @@ export default function AboutPage() {
                   </p>
                 </div>
 
+                <div className="p-5 rounded-lg border-l-2 border-gray-300 dark:border-gray-600 bg-gray-50/60 dark:bg-gray-900/40">
+                  <h3 className="text-body font-bold text-gray-900 dark:text-gray-100 mb-2">
+                    Desktop First (Mobile Coming Later)
+                  </h3>
+                  <p className="text-small text-gray-600 dark:text-gray-400 leading-relaxed">
+                    3D Anvil is optimized for desktop browsers right now. A
+                    mobile-friendly version will come at some point — for the
+                    best experience today, use a laptop or desktop.
+                  </p>
+                </div>
+
                 <div className="p-5 rounded-lg border-l-2 border-purple-400 bg-purple-50/50 dark:bg-purple-950/20">
                   <h3 className="text-body font-bold text-gray-900 dark:text-gray-100 mb-2">
                     Coming Soon
@@ -860,7 +986,7 @@ export default function AboutPage() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-gray-400 mt-1">—</span>
-                      <span>Mainnet launch</span>
+                      <span>Mobile-friendly version</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-gray-400 mt-1">—</span>

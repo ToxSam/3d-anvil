@@ -16,7 +16,7 @@ Arweave. Zero platform fees.
 
 **Deployed at:** asset-minter-solana.vercel.app (domain moving to
 3danvil.com)
-**Network:** Solana devnet (mainnet cutover coming)
+**Network:** Solana mainnet
 **Stack:** Next.js 14 App Router, TypeScript, Tailwind, Solana/
 Metaplex/Umi, Candy Machine, Irys/Arweave, Vercel KV (Upstash Redis)
 
@@ -191,13 +191,12 @@ Build command: `next build`
 
 ---
 
-## Mainnet cutover (when ready)
+## Local dev vs production
 
-Env var changes only — no code changes:
-1. `NEXT_PUBLIC_SOLANA_NETWORK` → `mainnet-beta`
-2. `HELIUS_RPC_URL` → mainnet Helius endpoint
-3. `NEXT_PUBLIC_IRYS_NODE` → Irys mainnet node
-4. Redeploy
+Production runs on **mainnet**. For local development, use `devnet`:
+- `NEXT_PUBLIC_SOLANA_NETWORK` → `devnet` (local) or `mainnet-beta` (production)
+- `HELIUS_RPC_URL` → devnet or mainnet Helius endpoint
+- `NEXT_PUBLIC_IRYS_NODE` → devnet or mainnet Irys node
 
 ---
 

@@ -41,9 +41,9 @@ no gatekeeping, all enforced on-chain.
 - **On-chain enforcement** — Mint rules (price, supply, dates, allowlist, per-wallet, Dutch auction) are enforced by the **Candy Machine** program on Solana.
 - **Launchpad registry** (optional) — Curate collections created through 3D Anvil and expose a **Balances API** (`GET /balances/[address]`) that returns only NFTs from those collections.
 - **Discover** — Browse collections and drops by creator address (requires DAS-capable RPC).
-- **Devnet and Mainnet** — Switch networks via environment variables.
+- **Mainnet live** — Production runs on Solana mainnet; local dev can use devnet.
 - **Dark mode** — Theme toggle with system preference support.
-- **Responsive** — Mobile-friendly layout with hamburger nav.
+- **Desktop-first** — Optimized for desktop; mobile-friendly version planned.
 
 ---
 
