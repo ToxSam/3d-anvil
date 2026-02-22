@@ -9,7 +9,7 @@ import { WalletButton } from '@/components/WalletButton';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
 import Link from 'next/link';
 import { EXPLORER_URL, SOLANA_NETWORK, isDropCollection, isLocalhostUrl, tryFetchJsonWithIrysGateway, resolveArweaveUrl } from '@/lib/constants';
-import { getOwnerAssetsInCreationOrder } from '@/lib/das';
+import { getAssetsByOwnerSorted, DASAsset } from '@/lib/das';
 
 const PAGE_SIZE = 20;
 
@@ -188,44 +188,12 @@ export default function DashboardPage() {
   const pagedCollections = sortedCollections.slice(collectionsPage * PAGE_SIZE, (collectionsPage + 1) * PAGE_SIZE);
   const pagedDrops = sortedDrops.slice(dropsPage * PAGE_SIZE, (dropsPage + 1) * PAGE_SIZE);
 
-  const timestampRunRef = useRef(0);
-
-  /**
-   * Build a creation-order map using Helius DAS getAssetsByOwner with
-   * sortBy:"created".  One indexed query replaces N getSignaturesForAddress
-   * calls.  Returns a Map<address, syntheticTimestamp> where higher values
-   * mean newer.  Falls back gracefully (all 0) when DAS is unavailable.
-   */
-  async function fetchCreationOrder(
-    addresses: string[],
-    ownerAddress: string,
-  ): Promise<Map<string, number>> {
-    const order = new Map<string, number>();
-    if (addresses.length === 0) return order;
-
-    const addressSet = new Set(addresses);
-    const sorted = await getOwnerAssetsInCreationOrder(ownerAddress, 'desc');
-
-    if (sorted.length > 0) {
-      const total = sorted.length;
-      for (let i = 0; i < sorted.length; i++) {
-        if (addressSet.has(sorted[i])) {
-          order.set(sorted[i], total - i);
-        }
-      }
-    }
-
-    for (const addr of addresses) {
-      if (!order.has(addr)) order.set(addr, 0);
-    }
-
-    return order;
-  }
+  const loadRunRef = useRef(0);
 
   const loadDashboard = useCallback(async () => {
     if (!wallet.publicKey) return;
 
-    const runId = ++timestampRunRef.current;
+    const runId = ++loadRunRef.current;
 
     setLoading(true);
     setLoadingTimestamps(false);
@@ -234,127 +202,144 @@ export default function DashboardPage() {
     setCollectionsPage(0);
     setDropsPage(0);
     try {
-      const allNfts = await metaplex.nfts().findAllByOwner({
-        owner: wallet.publicKey,
-      });
+      const ownerAddress = wallet.publicKey.toBase58();
 
-      // Drop NFTs whose metadata URI points at localhost — these were minted
-      // during local dev and can never be fetched from the deployed site.
-      const fetchableNfts = allNfts.filter((nft: any) => {
-        const uri = nft.uri as string | undefined;
-        return !uri || !isLocalhostUrl(uri);
-      });
+      // Two parallel calls:
+      // 1. DAS getAssetsByOwner — returns full metadata + creation order in one call
+      // 2. Metaplex findAllByOwner — identifies which NFTs are collections (collectionDetails)
+      const [dasResult, metaplexNfts] = await Promise.all([
+        getAssetsByOwnerSorted(ownerAddress, 'created', 'desc', 1, 1000).catch(() => null),
+        metaplex.nfts().findAllByOwner({ owner: wallet.publicKey }),
+      ]);
 
-      // Load metadata in small batches (3 at a time)
-      const BATCH_SIZE = 3;
-      const resolvedNfts: any[] = [];
-      for (let i = 0; i < fetchableNfts.length; i += BATCH_SIZE) {
-        const batch = fetchableNfts.slice(i, i + BATCH_SIZE);
-        const results = await Promise.allSettled(
-          batch.map(async (nft: any) => {
-            try {
-              return await metaplex.nfts().load({ metadata: nft });
-            } catch {
-              try {
-                return await metaplex.nfts().load({
-                  metadata: nft,
-                  loadJsonMetadata: false,
-                });
-              } catch {
-                return nft;
-              }
-            }
-          }),
-        );
-        for (const r of results) {
-          if (r.status === 'fulfilled') resolvedNfts.push(r.value);
+      if (loadRunRef.current !== runId) return;
+
+      // Build creation order from DAS sort position (index 0 = newest)
+      const creationOrderMap = new Map<string, number>();
+      if (dasResult?.items) {
+        const total = dasResult.items.length;
+        for (let i = 0; i < total; i++) {
+          creationOrderMap.set(dasResult.items[i].id, total - i);
         }
       }
 
-      // Separate collections, drops, and regular NFTs
-      const collectionNfts: CollectionItem[] = [];
-      const dropNfts: CollectionItem[] = [];
-      const itemNfts: NFTItem[] = [];
+      // Identify collection NFTs from Metaplex (only source for collectionDetails)
+      const collectionInfoMap = new Map<string, { size: number; uri: string; name: string; symbol: string }>();
+      const localhostAddresses = new Set<string>();
 
-      for (const nft of resolvedNfts) {
-        const isCollection =
-          nft.collectionDetails !== undefined && nft.collectionDetails !== null;
+      for (const nft of metaplexNfts as any[]) {
+        const addr = (nft.mintAddress || nft.address).toString();
+        const uri = nft.uri as string | undefined;
 
-        if (isCollection) {
-          let json = nft.json || {};
+        if (uri && isLocalhostUrl(uri)) {
+          localhostAddresses.add(addr);
+          continue;
+        }
 
-          if (!nft.json && nft.uri) {
-            const fallbackJson = await tryFetchJsonWithIrysGateway(nft.uri);
-            if (fallbackJson) json = fallbackJson;
-          }
-
-          const isDrop = isDropCollection(json);
-          const item: CollectionItem = {
-            address: (nft.mintAddress || nft.address).toString(),
+        if (nft.collectionDetails != null) {
+          collectionInfoMap.set(addr, {
+            size: nft.collectionDetails?.size ? Number(nft.collectionDetails.size) : 0,
+            uri: uri || '',
             name: nft.name || 'Unnamed Collection',
             symbol: nft.symbol || '',
-            description: json.description,
-            image: resolveArweaveUrl(json.image),
-            itemCount: nft.collectionDetails?.size
-              ? Number(nft.collectionDetails.size)
-              : 0,
-            isDrop,
-            mintConfig: isDrop ? json.mint_config : undefined,
-            createdAt: 0,
-          };
-
-          if (isDrop) {
-            dropNfts.push(item);
-          } else {
-            collectionNfts.push(item);
-          }
-        } else {
-          let itemJson = nft.json || {};
-          if (!nft.json && nft.uri) {
-            const fallbackJson = await tryFetchJsonWithIrysGateway(nft.uri);
-            if (fallbackJson) itemJson = fallbackJson;
-          }
-          itemNfts.push({
-            address: (nft.mintAddress || nft.address).toString(),
-            name: nft.name || (itemJson as any).name || 'Unnamed NFT',
-            description: (itemJson as any).description,
-            image: resolveArweaveUrl((itemJson as any).image),
-            animationUrl: resolveArweaveUrl((itemJson as any).animation_url),
-            attributes: (itemJson as any).attributes,
-            collectionName: nft.collection?.address
-              ? nft.collection.address.toString().slice(0, 8) + '...'
-              : undefined,
-            createdAt: 0,
           });
         }
       }
 
-      // Show items immediately, then fetch timestamps in background
+      // Build DAS lookup map
+      const dasMap = new Map<string, DASAsset>();
+      if (dasResult?.items) {
+        for (const asset of dasResult.items) {
+          dasMap.set(asset.id, asset);
+        }
+      }
+
+      const collectionNfts: CollectionItem[] = [];
+      const dropNfts: CollectionItem[] = [];
+      const itemNfts: NFTItem[] = [];
+
+      // Regular NFTs from DAS (already have full metadata — no extra calls)
+      if (dasResult?.items) {
+        for (const asset of dasResult.items) {
+          if (collectionInfoMap.has(asset.id)) continue;
+          if (localhostAddresses.has(asset.id)) continue;
+
+          const collectionGroup = asset.grouping?.find(g => g.group_key === 'collection');
+          itemNfts.push({
+            address: asset.id,
+            name: asset.content?.metadata?.name || 'Unnamed NFT',
+            description: asset.content?.metadata?.description,
+            image: resolveArweaveUrl(asset.content?.links?.image),
+            animationUrl: resolveArweaveUrl(asset.content?.links?.animation_url),
+            attributes: asset.content?.metadata?.attributes as NFTItem['attributes'],
+            collectionName: collectionGroup
+              ? collectionGroup.group_value.slice(0, 8) + '...'
+              : undefined,
+            createdAt: creationOrderMap.get(asset.id) ?? 0,
+          });
+        }
+      }
+
+      // Regular NFTs from Metaplex not in DAS (rare edge case)
+      for (const nft of metaplexNfts as any[]) {
+        const addr = (nft.mintAddress || nft.address).toString();
+        if (collectionInfoMap.has(addr) || localhostAddresses.has(addr) || dasMap.has(addr)) continue;
+
+        itemNfts.push({
+          address: addr,
+          name: nft.name || 'Unnamed NFT',
+          description: undefined,
+          image: undefined,
+          animationUrl: undefined,
+          attributes: undefined,
+          collectionName: nft.collection?.address
+            ? nft.collection.address.toString().slice(0, 8) + '...'
+            : undefined,
+          createdAt: 0,
+        });
+      }
+
+      // Fetch JSON for collection NFTs in parallel (need isDrop, mintConfig)
+      const collectionEntries = Array.from(collectionInfoMap.entries());
+      const jsonResults = await Promise.allSettled(
+        collectionEntries.map(async ([addr, info]) => {
+          const dasAsset = dasMap.get(addr);
+          const uri = dasAsset?.content?.json_uri || info.uri;
+          let json: any = {};
+          if (uri && !isLocalhostUrl(uri)) {
+            json = await tryFetchJsonWithIrysGateway(uri) || {};
+          }
+          return { addr, info, dasAsset, json };
+        }),
+      );
+
+      if (loadRunRef.current !== runId) return;
+
+      for (const result of jsonResults) {
+        if (result.status !== 'fulfilled') continue;
+        const { addr, info, dasAsset, json } = result.value;
+        const isDrop = isDropCollection(json);
+
+        const item: CollectionItem = {
+          address: addr,
+          name: dasAsset?.content?.metadata?.name || info.name || 'Unnamed Collection',
+          symbol: dasAsset?.content?.metadata?.symbol || info.symbol || '',
+          description: json.description || dasAsset?.content?.metadata?.description,
+          image: resolveArweaveUrl(json.image || dasAsset?.content?.links?.image),
+          itemCount: info.size,
+          isDrop,
+          mintConfig: isDrop ? json.mint_config : undefined,
+          createdAt: creationOrderMap.get(addr) ?? 0,
+        };
+
+        if (isDrop) dropNfts.push(item);
+        else collectionNfts.push(item);
+      }
+
       setCollections(collectionNfts);
       setDrops(dropNfts);
       setNfts(itemNfts);
       setLoading(false);
-
-      // ── Phase 2: fetch creation order via DAS (Helius) ──
-      setLoadingTimestamps(true);
-      if (timestampRunRef.current !== runId) return;
-
-      const allAddresses = [
-        ...itemNfts.map((n) => n.address),
-        ...collectionNfts.map((c) => c.address),
-        ...dropNfts.map((d) => d.address),
-      ];
-
-      const timestamps = await fetchCreationOrder(allAddresses, wallet.publicKey!.toBase58());
-      if (timestampRunRef.current !== runId) return;
-
-      const applyTs = <T extends { address: string; createdAt: number }>(items: T[]): T[] =>
-        items.map((item) => ({ ...item, createdAt: timestamps.get(item.address) ?? 0 }));
-
-      setNfts(applyTs(itemNfts));
-      setCollections(applyTs(collectionNfts));
-      setDrops(applyTs(dropNfts));
-      setLoadingTimestamps(false);
     } catch (err) {
       console.error('Failed to load dashboard:', err);
       setError((err as Error).message);
@@ -367,7 +352,7 @@ export default function DashboardPage() {
     if (wallet.connected && wallet.publicKey) {
       loadDashboard();
     } else {
-      timestampRunRef.current++;
+      loadRunRef.current++;
       setCollections([]);
       setDrops([]);
       setNfts([]);

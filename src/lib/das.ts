@@ -21,6 +21,7 @@ export interface DASAsset {
       name?: string;
       symbol?: string;
       description?: string;
+      attributes?: Array<{ trait_type?: string; value?: string }>;
     };
     links?: {
       image?: string;
@@ -145,6 +146,31 @@ export async function getAssetsByOwner(
     () =>
       dasRPC<DASSearchResult>('getAssetsByOwner', {
         ownerAddress,
+        page,
+        limit,
+      }),
+    60,
+  );
+}
+
+/**
+ * Get all assets owned by a wallet, sorted by creation time.
+ * Returns full DAS metadata AND implicit creation order (array position).
+ * Cached for 60 seconds.
+ */
+export async function getAssetsByOwnerSorted(
+  ownerAddress: string,
+  sortBy: 'created' | 'updated' | 'recent_action' = 'created',
+  sortDirection: 'asc' | 'desc' = 'desc',
+  page = 1,
+  limit = 1000,
+): Promise<DASSearchResult | null> {
+  return cachedFetch(
+    `das:owner-sorted:${ownerAddress}:${sortBy}:${sortDirection}:${page}:${limit}`,
+    () =>
+      dasRPC<DASSearchResult>('getAssetsByOwner', {
+        ownerAddress,
+        sortBy: { sortBy, sortDirection },
         page,
         limit,
       }),

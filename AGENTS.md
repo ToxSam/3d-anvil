@@ -200,6 +200,47 @@ Production runs on **mainnet**. For local development, use `devnet`:
 
 ---
 
+## Data-fetching patterns (performance)
+
+These patterns exist to keep page loads fast. Follow them when
+adding new pages or modifying existing data-fetching code.
+
+**DAS-first for read-only display:**
+Pages that display NFTs, collections, or inventory should use the
+DAS API (`src/lib/das.ts`) as the primary data source. DAS returns
+full metadata (name, image, animation_url, attributes) in a single
+RPC call. Only fall back to Metaplex SDK when DAS is unavailable.
+
+- `getAssetsByOwner` / `getAssetsByOwnerSorted` — wallet inventory
+- `getAssetsByCreator` — creator profile
+- `getCollectionAssets` — collection items
+
+**Metaplex `findAllByOwner` for collection detection only:**
+DAS does not expose `collectionDetails`. Use Metaplex
+`findAllByOwner()` (single RPC call, returns on-chain metadata
+without JSON) to identify which NFTs are collections. Run this
+in parallel with the DAS call. Never call `metaplex.nfts().load()`
+in a loop — it makes 2-3 RPC calls per NFT and was the main
+performance bottleneck.
+
+**Parallel JSON fetch for collection metadata:**
+Collection NFTs need full JSON (for `isDrop`, `mint_config`, etc.).
+Fetch JSON from the metadata URI using `tryFetchJsonWithIrysGateway`
+for all collections in parallel via `Promise.allSettled`. Collections
+are few (1-10), so concurrency is not an issue.
+
+**Never sequential batch-of-N:**
+Do not use sequential `for` loops with `await` inside for fetching
+data for multiple items. Use `Promise.allSettled` for parallel
+execution. If you need to limit concurrency, use larger batches
+(10+), not sequential batches of 3.
+
+**Lazy loading for images and 3D viewers:**
+Use `loading="lazy"` on `<img>` tags in card components. VRMViewer
+is already code-split via `dynamic()`.
+
+---
+
 ## Style guide
 
 The app uses a forge/blacksmith theme with orange/amber accents,

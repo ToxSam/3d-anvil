@@ -42,6 +42,8 @@ export function useUserCollections() {
     setError(null);
 
     try {
+      // Single RPC call — returns on-chain metadata including collectionDetails
+      // without loading JSON (fast).
       const allNfts = await metaplex.nfts().findAllByOwner({
         owner: wallet.publicKey,
       });
@@ -52,52 +54,30 @@ export function useUserCollections() {
           nft.collectionDetails !== null,
       );
 
-      // Drop NFTs whose metadata URI points at localhost — these were minted
-      // during local dev and can never be fetched from the deployed site.
       const fetchable = collectionCandidates.filter((nft: any) => {
         const uri = nft.uri as string | undefined;
         return !uri || !isLocalhostUrl(uri);
       });
 
-      const BATCH_SIZE = 3;
-      const resolved: any[] = [];
-      for (let i = 0; i < fetchable.length; i += BATCH_SIZE) {
-        const batch = fetchable.slice(i, i + BATCH_SIZE);
-        const results = await Promise.allSettled(
-          batch.map(async (nft: any) => {
-            const uri = nft.uri as string | undefined;
-            let loaded: any;
+      // Fetch JSON metadata for all collections in parallel.
+      // Collections are typically 1-10, so we can fire all fetches at once
+      // instead of the old sequential batch-of-3 approach.
+      const results = await Promise.allSettled(
+        fetchable.map(async (nft: any) => {
+          const uri = nft.uri as string | undefined;
+          let json: any = {};
+          if (uri) {
+            json = await tryFetchJsonWithIrysGateway(uri) || {};
+          }
+          return { ...nft, json };
+        }),
+      );
 
-            try {
-              loaded = await metaplex.nfts().load({ metadata: nft });
-            } catch {
-              try {
-                loaded = await metaplex.nfts().load({
-                  metadata: nft,
-                  loadJsonMetadata: false,
-                });
-              } catch {
-                loaded = nft;
-              }
-            }
-
-            // If the SDK didn't populate JSON (e.g. arweave.net 404 on devnet),
-            // try fetching through the Irys gateway so we can still determine
-            // whether the NFT is a drop.
-            if (!loaded.json && uri) {
-              const json = await tryFetchJsonWithIrysGateway(uri);
-              if (json) loaded = { ...loaded, json };
-            }
-
-            return loaded;
-          }),
-        );
-        for (const r of results) {
-          if (r.status === 'fulfilled') resolved.push(r.value);
-        }
-      }
-
-      const collectionNfts: CollectionOption[] = resolved
+      const collectionNfts: CollectionOption[] = results
+        .filter(
+          (r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled',
+        )
+        .map((r) => r.value)
         .filter(
           (nft) =>
             nft.collectionDetails !== undefined &&

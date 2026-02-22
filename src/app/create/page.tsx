@@ -50,18 +50,17 @@ export default function CreateHubPage() {
     }
   }, [expandedCard]);
 
-  // Preload minted count for visible collections (batched to avoid RPC flood)
+  // Preload minted count for visible collections (all in parallel)
   const collectionAddresses = collections.map((c) => c.address).sort().join(',');
   useEffect(() => {
     if (activeTab !== 'collections' || collections.length === 0) return;
     let cancelled = false;
-    (async () => {
-      for (const col of collections) {
-        if (cancelled) break;
-        if (cardData[col.address] !== undefined) continue;
-        await loadCardStats(col.address);
-      }
-    })();
+    const toLoad = collections.filter(col => cardData[col.address] === undefined);
+    if (toLoad.length === 0) return;
+    Promise.allSettled(toLoad.map(col => {
+      if (cancelled) return Promise.resolve();
+      return loadCardStats(col.address);
+    }));
     return () => { cancelled = true; };
   }, [activeTab, collectionAddresses]);
 
