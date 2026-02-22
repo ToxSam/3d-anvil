@@ -1475,6 +1475,19 @@ body {
   min-height: 0;
 }
 
+/* Extend forge background to cover viewport top when noScroll (fixes loading cut-out) */
+.page-inner-forge--full-cover {
+  margin-top: -4rem;
+  padding-top: 4rem;
+}
+
+@media (min-width: 768px) {
+  .page-inner-forge--full-cover {
+    margin-top: -5rem;
+    padding-top: 5rem;
+  }
+}
+
 .dark .page-inner-forge--compact {
   background: var(--background);
 }

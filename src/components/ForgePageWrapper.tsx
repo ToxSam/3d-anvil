@@ -35,7 +35,7 @@ export function ForgePageWrapper({
   const effectiveEmbers = forging ? embers * 3 : embers;
   
   return (
-    <div className={`page-inner-forge ${compact ? 'page-inner-forge--compact' : ''} ${forging ? 'page-inner-forge--forging' : ''} ${noScroll ? 'page-inner-forge--no-scroll' : ''}`}>
+    <div className={`page-inner-forge ${compact ? 'page-inner-forge--compact' : ''} ${forging ? 'page-inner-forge--forging' : ''} ${noScroll ? 'page-inner-forge--no-scroll page-inner-forge--full-cover' : ''}`}>
       {/* Ambient effects layer */}
       <div className="page-inner-effects" aria-hidden>
         {showHeat && <div className="page-inner-heat-gradient" />}
