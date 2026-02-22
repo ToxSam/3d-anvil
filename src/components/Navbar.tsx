@@ -91,10 +91,10 @@ export function Navbar() {
             title={
               SOLANA_NETWORK === 'devnet'
                 ? 'Using Solana Devnet. Switch your wallet (e.g. Phantom) to Devnet to match.'
-                : `Solana ${SOLANA_NETWORK}`
+                : 'Using Solana Mainnet. Make sure your wallet is set to Mainnet.'
             }
           >
-            {SOLANA_NETWORK === 'devnet' ? 'Devnet' : SOLANA_NETWORK}
+            {SOLANA_NETWORK === 'devnet' ? 'Devnet' : 'Mainnet-Beta🧪'}
           </span>
           <a
             href="https://github.com/ToxSam/3d-anvil"
