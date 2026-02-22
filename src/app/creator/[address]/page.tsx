@@ -9,7 +9,7 @@ import { NFTCard } from '@/components/NFTCard';
 import { ShareButtons } from '@/components/ShareButtons';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
 import { SkeletonGrid, StatSkeleton } from '@/components/Skeleton';
-import { EXPLORER_URL, SOLANA_NETWORK, resolveArweaveUrl, tryFetchJsonWithIrysGateway } from '@/lib/constants';
+import { EXPLORER_URL, SOLANA_NETWORK, resolveArweaveUrl, tryFetchJsonWithIrysGateway, is3DAnvilAsset } from '@/lib/constants';
 import { getAssetsByCreator, getAssetsByOwner, DASAsset } from '@/lib/das';
 
 const PAGE_SIZE = 20;
@@ -155,21 +155,44 @@ export default function CreatorPage() {
     if (!address) return;
     setInventoryLoading(true);
     try {
+      const get3DModelUrl = (item: any): string | undefined =>
+        item.content?.links?.animation_url ||
+        item.content?.files?.find(
+          (f: any) => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
+        )?.uri;
+
+      // Primary: use balances API (KV registry filtered)
+      const balancesResult = await fetch(`/balances/${address}`)
+        .then(r => r.ok ? r.json() : null)
+        .catch(() => null);
+
+      if (balancesResult !== null) {
+        const items: NFTItem[] = (balancesResult.items ?? []).map((item: any) => ({
+          address: item.id,
+          name: item.content?.metadata?.name || 'Unnamed',
+          description: item.content?.metadata?.description,
+          image: resolveArweaveUrl(item.content?.links?.image),
+          animationUrl: resolveArweaveUrl(get3DModelUrl(item)),
+          createdAt: 0,
+        }));
+        setInventory(items);
+        return;
+      }
+
+      // Fallback: DAS with strict file-type filter (no bare animation_url)
       const result = await getAssetsByOwner(address);
       if (result?.items) {
-        const get3DModelUrl = (item: DASAsset): string | undefined =>
-          item.content?.links?.animation_url ||
-          item.content?.files?.find(
+        const has3DModelFile = (item: DASAsset): boolean =>
+          !!(item.content?.files?.some(
             f => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
-          )?.uri;
+          ));
 
         const results = await Promise.allSettled(
           result.items
-            .filter(item => !!get3DModelUrl(item))
+            .filter(has3DModelFile)
             .map(async (item) => {
               const animationUrl = resolveArweaveUrl(get3DModelUrl(item));
               let image = resolveArweaveUrl(item.content?.links?.image);
-              // DAS sometimes hasn't indexed the image yet — fetch JSON as fallback
               if (!image && item.content?.json_uri) {
                 const json = await tryFetchJsonWithIrysGateway(item.content.json_uri);
                 if (json) image = resolveArweaveUrl(json.image);
@@ -236,13 +259,14 @@ export default function CreatorPage() {
         .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
         .map((r) => r.value);
 
-      // Separate collections from items
+      // Separate collections from items, filtering to 3D Anvil assets only
       const collectionList: CollectionItem[] = [];
       const nftList: NFTItem[] = [];
 
       for (const nft of resolved) {
         const isCollection = nft.collectionDetails != null;
         if (isCollection) {
+          if (!is3DAnvilAsset(nft.json)) continue;
           collectionList.push({
             address: (nft.mintAddress || nft.address).toString(),
             name: nft.name || 'Unnamed Collection',
@@ -253,6 +277,10 @@ export default function CreatorPage() {
             createdAt: 0,
           });
         } else {
+          const has3DModel = nft.json?.properties?.files?.some(
+            (f: any) => f.type?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
+          );
+          if (!has3DModel) continue;
           nftList.push({
             address: (nft.mintAddress || nft.address).toString(),
             name: nft.name || 'Unnamed',
@@ -283,22 +311,24 @@ export default function CreatorPage() {
     const nftList: NFTItem[] = [];
 
     for (const item of items) {
-      // Only include 3D Anvil creations — they always have a VRM/GLB model file.
-      // Check content.links.animation_url first; also check content.files for VRM/GLB
-      // mime types in case Helius hasn't populated content.links yet.
-      const animUrl =
+      // Strict: only include items with actual 3D model files in content.files
+      const has3DModel = item.content?.files?.some(
+        f => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
+      );
+      if (!has3DModel) continue;
+
+      const modelUrl =
         item.content?.links?.animation_url ||
         item.content?.files?.find(
           f => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
         )?.uri;
-      if (!animUrl) continue;
 
       nftList.push({
         address: item.id,
         name: item.content?.metadata?.name || 'Unnamed',
         description: item.content?.metadata?.description,
         image: resolveArweaveUrl(item.content?.links?.image),
-        animationUrl: resolveArweaveUrl(animUrl),
+        animationUrl: resolveArweaveUrl(modelUrl),
         createdAt: 0,
       });
     }

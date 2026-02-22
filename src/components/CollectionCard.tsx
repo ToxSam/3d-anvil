@@ -42,7 +42,7 @@ export function CollectionCard({
         <span className="card-spark card-spark-bl" aria-hidden />
         <span className="card-spark card-spark-br" aria-hidden />
         {image && (
-          <div className="relative z-10 aspect-video overflow-hidden">
+          <div className="relative z-10 aspect-square overflow-hidden">
             <img
               src={image}
               alt={name}

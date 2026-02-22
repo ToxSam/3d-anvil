@@ -207,9 +207,10 @@ export default function DashboardPage() {
       // Two parallel calls:
       // 1. DAS getAssetsByOwner — full metadata + creation order in one call
       // 2. Metaplex findAllByOwner — only used to detect collection NFTs (collectionDetails)
-      const [dasResult, metaplexNfts] = await Promise.all([
+      const [dasResult, metaplexNfts, balancesResult] = await Promise.all([
         getAssetsByOwnerSorted(ownerAddress, 'created', 'desc', 1, 1000).catch(() => null),
         metaplex.nfts().findAllByOwner({ owner: wallet.publicKey }),
+        fetch(`/balances/${ownerAddress}`).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
 
       if (loadRunRef.current !== runId) return;
@@ -245,11 +246,17 @@ export default function DashboardPage() {
         for (const asset of dasResult.items) dasMap.set(asset.id, asset);
       }
 
-      // ── Inventory: 3D Anvil NFTs (have a VRM/GLB model file) ──
-      // Check content.links.animation_url first; fall back to content.files mime/extension.
+      // ── Inventory: KV registry filter with strict file-type fallback ──
+      // balancesResult is null when the API failed/not configured; object otherwise
+      const useRegistryFilter = balancesResult !== null;
+      const registryMintSet = new Set<string>(
+        (balancesResult?.items ?? []).map((item: any) => item.id),
+      );
+
       const is3DAnvilItem = (asset: DASAsset): boolean => {
-        if (collectionInfoMap.has(asset.id)) return false; // skip collection master NFTs
-        if (asset.content?.links?.animation_url) return true;
+        if (collectionInfoMap.has(asset.id)) return false;
+        if (useRegistryFilter) return registryMintSet.has(asset.id);
+        // Fallback: strict file-type check (no bare animation_url)
         return !!(asset.content?.files?.some(
           f => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
         ));
