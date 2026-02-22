@@ -9,8 +9,8 @@ import { NFTCard } from '@/components/NFTCard';
 import { ShareButtons } from '@/components/ShareButtons';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
 import { SkeletonGrid, StatSkeleton } from '@/components/Skeleton';
-import { EXPLORER_URL, SOLANA_NETWORK, resolveArweaveUrl } from '@/lib/constants';
-import { getAssetsByCreator, getAssetsByOwner, DASAsset } from '@/lib/das';
+import { EXPLORER_URL, SOLANA_NETWORK, resolveArweaveUrl, tryFetchJsonWithIrysGateway } from '@/lib/constants';
+import { getAssetsByCreator, DASAsset } from '@/lib/das';
 
 const PAGE_SIZE = 20;
 
@@ -155,18 +155,49 @@ export default function CreatorPage() {
     if (!address) return;
     setInventoryLoading(true);
     try {
-      const result = await getAssetsByOwner(address);
-      if (result && result.items.length > 0) {
-        const items: NFTItem[] = result.items.map((item) => ({
-          address: item.id,
-          name: item.content?.metadata?.name || 'Unnamed',
-          description: item.content?.metadata?.description,
-          image: item.content?.links?.image,
-          animationUrl: item.content?.links?.animation_url,
-          createdAt: 0,
-        }));
-        setInventory(items);
+      // Use the balances API which filters to only 3D Anvil NFTs via KV registry.
+      // Falls back to empty if the registry is unavailable (local dev without KV).
+      let items: NFTItem[] = [];
+      try {
+        const res = await fetch(`/api/balances/${address}`);
+        if (res.ok) {
+          const data = await res.json();
+          const balancesItems: any[] = data.items ?? [];
+          const results = await Promise.allSettled(
+            balancesItems.map(async (item: any) => {
+              // DAS content.links URLs are arweave.net — convert to Irys gateway
+              let image = resolveArweaveUrl(item.content?.links?.image as string | undefined);
+              let animationUrl = resolveArweaveUrl(
+                item.content?.links?.animation_url as string | undefined,
+              );
+              // Fallback: fetch metadata JSON if DAS hasn't indexed the image yet
+              if (!image && item.content?.json_uri) {
+                const json = await tryFetchJsonWithIrysGateway(
+                  item.content.json_uri as string,
+                );
+                if (json) {
+                  image = resolveArweaveUrl(json.image);
+                  if (!animationUrl) animationUrl = resolveArweaveUrl(json.animation_url);
+                }
+              }
+              return {
+                address: item.id as string,
+                name: (item.content?.metadata?.name as string) || 'Unnamed',
+                description: item.content?.metadata?.description as string | undefined,
+                image,
+                animationUrl,
+                createdAt: 0,
+              } as NFTItem;
+            }),
+          );
+          items = results
+            .filter((r): r is PromiseFulfilledResult<NFTItem> => r.status === 'fulfilled')
+            .map(r => r.value);
+        }
+      } catch {
+        // balances API unavailable (e.g. local dev without KV) — inventory stays empty
       }
+      setInventory(items);
     } catch (err) {
       console.error('Failed to load inventory:', err);
     } finally {
@@ -256,28 +287,27 @@ export default function CreatorPage() {
   }, [address, metaplex]);
 
   function processAssets(items: DASAsset[]) {
-    const collectionList: CollectionItem[] = [];
     const nftList: NFTItem[] = [];
 
     for (const item of items) {
-      const name = item.content?.metadata?.name || 'Unnamed';
-      const image = item.content?.links?.image;
-      const description = item.content?.metadata?.description;
+      // Only include 3D Anvil creations — they always have a 3D model file
       const animUrl = item.content?.links?.animation_url;
+      if (!animUrl) continue;
 
       nftList.push({
         address: item.id,
-        name,
-        description,
-        image,
-        animationUrl: animUrl,
+        name: item.content?.metadata?.name || 'Unnamed',
+        description: item.content?.metadata?.description,
+        // DAS returns arweave.net URLs — convert to Irys gateway for immediate availability
+        image: resolveArweaveUrl(item.content?.links?.image),
+        animationUrl: resolveArweaveUrl(animUrl),
         createdAt: 0,
       });
     }
 
     setNfts(nftList);
     setStats({
-      totalCollections: collectionList.length,
+      totalCollections: 0,
       totalCreations: nftList.length,
       totalAssets: nftList.length,
     });

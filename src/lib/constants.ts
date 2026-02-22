@@ -46,6 +46,17 @@ export function isDropCollection(json: any): boolean {
 }
 
 /**
+ * Returns true when a JSON metadata object belongs to a 3D Anvil asset
+ * (collection or drop). Any collection with `properties.collection_kind`
+ * set was created through this platform.
+ */
+export function is3DAnvilAsset(json: any): boolean {
+  if (!json) return false;
+  const props = json.properties || {};
+  return props.collection_kind != null || props.is_drop === true;
+}
+
+/**
  * Returns true when a URL points at localhost / 127.0.0.1.
  * Used to suppress mixed-content warnings on the deployed site for NFTs
  * that were minted during local development with local storage.
