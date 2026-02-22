@@ -1,5 +1,6 @@
 export const COLLECTION_TYPES = {
   VRM_AVATARS: 'vrm_avatars',
+  GLB_MODELS: 'glb_models',
   GLB_WEARABLES: 'glb_wearables',
   CUSTOM: 'custom',
 } as const;
@@ -10,6 +11,10 @@ export const COLLECTION_SCHEMAS = {
   [COLLECTION_TYPES.VRM_AVATARS]: {
     required_fields: ['animation_url', 'vrm_version', 'license'],
     suggested_traits: ['License', 'Commercial Use', 'Blend Shapes', 'Bone Count'],
+  },
+  [COLLECTION_TYPES.GLB_MODELS]: {
+    required_fields: ['animation_url', 'license'],
+    suggested_traits: ['License', 'Commercial Use'],
   },
   [COLLECTION_TYPES.GLB_WEARABLES]: {
     required_fields: ['animation_url', 'wearable_type'],

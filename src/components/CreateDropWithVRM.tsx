@@ -888,6 +888,9 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
           }))
         : undefined;
 
+      const isGlb = vrmMetadata?.fileType === 'glb';
+      const collectionType = isGlb ? COLLECTION_TYPES.GLB_MODELS : COLLECTION_TYPES.VRM_AVATARS;
+
       const metadata = {
         name: collectionName,
         symbol: collectionSymbol || 'DROP',
@@ -897,12 +900,12 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
         attributes,
         properties: {
           category: 'vr',
-          collection_type: COLLECTION_TYPES.VRM_AVATARS,
-          metadata_schema: COLLECTION_SCHEMAS[COLLECTION_TYPES.VRM_AVATARS],
+          collection_type: collectionType,
+          metadata_schema: COLLECTION_SCHEMAS[collectionType],
           collection_kind: COLLECTION_KIND.DROP,
           is_drop: true, // legacy compat
           files: [
-            { uri: vrmUrl, type: 'model/vrm', name: vrmFile.name },
+            { uri: vrmUrl, type: getMimeType(vrmFile), name: vrmFile.name },
             { uri: thumbnailUrl, type: thumbnailFile.type || 'image/png', name: thumbnailFile.name },
             ...uploadedAdditionalFiles,
           ],

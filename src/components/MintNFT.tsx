@@ -595,7 +595,7 @@ export function MintNFT({ collectionAddress, collectionName, collectionSymbol, o
         const metadata = {
           name: editionName,
           symbol: nftSymbol,
-          description: nftDescription || 'VRM Avatar NFT',
+          description: nftDescription || (vrmMetadata?.fileType === 'glb' ? 'GLB Model NFT' : 'VRM Avatar NFT'),
           seller_fee_basis_points: royaltyBps,
           image: thumbnailUrl,
           animation_url: vrmUrl,
@@ -603,8 +603,8 @@ export function MintNFT({ collectionAddress, collectionName, collectionSymbol, o
           attributes,
           properties: {
             files: [
-              { uri: vrmUrl, type: 'model/vrm' },
-              { uri: thumbnailUrl, type: thumbnailFile.type || 'image/png' },
+              { uri: vrmUrl, type: getMimeType(vrmFile!), name: vrmFile!.name },
+              { uri: thumbnailUrl, type: thumbnailFile.type || 'image/png', name: thumbnailFile.name },
               ...uploadedAdditionalFiles,
             ],
             category: 'vr',
