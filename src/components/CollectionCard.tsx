@@ -42,12 +42,12 @@ export function CollectionCard({
         <span className="card-spark card-spark-bl" aria-hidden />
         <span className="card-spark card-spark-br" aria-hidden />
         {image && (
-          <div className="relative z-10 aspect-video bg-gray-100/50 dark:bg-gray-800/50 overflow-hidden">
+          <div className="relative z-10 aspect-video overflow-hidden">
             <img
               src={image}
               alt={name}
               loading="lazy"
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-105"
             />
             {/* Drop badge on image */}
             {isDrop && (

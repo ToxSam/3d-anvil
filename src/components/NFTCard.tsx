@@ -40,7 +40,7 @@ export function NFTCard({
         <span className="card-spark card-spark-bl" aria-hidden />
         <span className="card-spark card-spark-br" aria-hidden />
         {/* Preview */}
-        <div className="relative z-10 aspect-square bg-gray-100/50 dark:bg-gray-800/50 overflow-hidden">
+        <div className="relative z-10 aspect-square overflow-hidden">
           {image ? (
             <img
               src={image}

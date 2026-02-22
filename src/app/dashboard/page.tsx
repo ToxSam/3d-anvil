@@ -9,6 +9,7 @@ import { WalletButton } from '@/components/WalletButton';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
 import Link from 'next/link';
 import { EXPLORER_URL, SOLANA_NETWORK, isDropCollection, is3DAnvilAsset, isLocalhostUrl, tryFetchJsonWithIrysGateway, resolveArweaveUrl } from '@/lib/constants';
+import { getAssetsByOwnerSorted, DASAsset } from '@/lib/das';
 
 const PAGE_SIZE = 20;
 
@@ -204,63 +205,26 @@ export default function DashboardPage() {
       const ownerAddress = wallet.publicKey.toBase58();
 
       // Two parallel calls:
-      // 1. /api/balances — returns only 3D Anvil NFTs (KV registry filtered)
-      // 2. Metaplex findAllByOwner — identifies which NFTs are collections (collectionDetails)
-      const [balancesResult, metaplexNfts] = await Promise.all([
-        fetch(`/api/balances/${ownerAddress}`)
-          .then(r => r.ok ? r.json() : null)
-          .catch(() => null),
+      // 1. DAS getAssetsByOwner — full metadata + creation order in one call
+      // 2. Metaplex findAllByOwner — only used to detect collection NFTs (collectionDetails)
+      const [dasResult, metaplexNfts] = await Promise.all([
+        getAssetsByOwnerSorted(ownerAddress, 'created', 'desc', 1, 1000).catch(() => null),
         metaplex.nfts().findAllByOwner({ owner: wallet.publicKey }),
       ]);
 
       if (loadRunRef.current !== runId) return;
 
-      // ── Inventory: 3D Anvil NFTs from the balances API ──
-      const balancesItems: any[] = balancesResult?.items ?? [];
+      // Build creation order from DAS sort position (index 0 = newest)
+      const creationOrderMap = new Map<string, number>();
+      if (dasResult?.items) {
+        const total = dasResult.items.length;
+        for (let i = 0; i < total; i++) {
+          creationOrderMap.set(dasResult.items[i].id, total - i);
+        }
+      }
 
-      const itemNftsResults = await Promise.allSettled(
-        balancesItems.map(async (item: any) => {
-          // DAS content.links URLs are arweave.net — convert to Irys gateway
-          let image = resolveArweaveUrl(item.content?.links?.image as string | undefined);
-          let animationUrl = resolveArweaveUrl(item.content?.links?.animation_url as string | undefined);
-
-          // DAS sometimes doesn't index image immediately — fall back to fetching JSON directly
-          if (!image && item.content?.json_uri) {
-            const json = await tryFetchJsonWithIrysGateway(item.content.json_uri as string);
-            if (json) {
-              image = resolveArweaveUrl(json.image);
-              if (!animationUrl) animationUrl = resolveArweaveUrl(json.animation_url);
-            }
-          }
-
-          const collectionGroup = (item.grouping as any[])?.find(
-            (g: any) => g.group_key === 'collection',
-          );
-
-          return {
-            address: item.id as string,
-            name: (item.content?.metadata?.name as string) || 'Unnamed NFT',
-            description: item.content?.metadata?.description as string | undefined,
-            image,
-            animationUrl,
-            attributes: item.content?.metadata?.attributes as NFTItem['attributes'],
-            collectionName: collectionGroup
-              ? (collectionGroup.group_value as string).slice(0, 8) + '...'
-              : undefined,
-            createdAt: 0,
-          } as NFTItem;
-        }),
-      );
-
-      if (loadRunRef.current !== runId) return;
-
-      const itemNfts: NFTItem[] = itemNftsResults
-        .filter((r): r is PromiseFulfilledResult<NFTItem> => r.status === 'fulfilled')
-        .map(r => r.value);
-
-      // ── Forged: collections/drops detected via Metaplex collectionDetails ──
+      // Identify collection NFTs from Metaplex (collectionDetails only comes from Metaplex)
       const collectionInfoMap = new Map<string, { size: number; uri: string; name: string; symbol: string }>();
-
       for (const nft of metaplexNfts as any[]) {
         const addr = (nft.mintAddress || nft.address).toString();
         const uri = nft.uri as string | undefined;
@@ -275,15 +239,74 @@ export default function DashboardPage() {
         }
       }
 
-      // Fetch JSON for all collection NFTs in parallel (to determine isDrop and image)
+      // DAS lookup for collection metadata
+      const dasMap = new Map<string, DASAsset>();
+      if (dasResult?.items) {
+        for (const asset of dasResult.items) dasMap.set(asset.id, asset);
+      }
+
+      // ── Inventory: 3D Anvil NFTs (have a VRM/GLB model file) ──
+      // Check content.links.animation_url first; fall back to content.files mime/extension.
+      const is3DAnvilItem = (asset: DASAsset): boolean => {
+        if (collectionInfoMap.has(asset.id)) return false; // skip collection master NFTs
+        if (asset.content?.links?.animation_url) return true;
+        return !!(asset.content?.files?.some(
+          f => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
+        ));
+      };
+
+      const get3DModelUrl = (asset: DASAsset): string | undefined =>
+        asset.content?.links?.animation_url ||
+        asset.content?.files?.find(
+          f => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
+        )?.uri;
+
+      const filteredItems = (dasResult?.items ?? []).filter(is3DAnvilItem);
+
+      const itemNftsResults = await Promise.allSettled(
+        filteredItems.map(async (asset) => {
+          let image = resolveArweaveUrl(asset.content?.links?.image);
+          const animationUrl = resolveArweaveUrl(get3DModelUrl(asset));
+
+          // DAS sometimes hasn't indexed the image yet — fall back to fetching metadata JSON
+          if (!image && asset.content?.json_uri) {
+            const json = await tryFetchJsonWithIrysGateway(asset.content.json_uri);
+            if (json) image = resolveArweaveUrl(json.image);
+          }
+
+          const collectionGroup = asset.grouping?.find(g => g.group_key === 'collection');
+          return {
+            address: asset.id,
+            name: asset.content?.metadata?.name || 'Unnamed NFT',
+            description: asset.content?.metadata?.description,
+            image,
+            animationUrl,
+            attributes: asset.content?.metadata?.attributes as NFTItem['attributes'],
+            collectionName: collectionGroup
+              ? collectionGroup.group_value.slice(0, 8) + '...'
+              : undefined,
+            createdAt: creationOrderMap.get(asset.id) ?? 0,
+          } as NFTItem;
+        }),
+      );
+
+      if (loadRunRef.current !== runId) return;
+
+      const itemNfts: NFTItem[] = itemNftsResults
+        .filter((r): r is PromiseFulfilledResult<NFTItem> => r.status === 'fulfilled')
+        .map(r => r.value);
+
+      // ── Forged: collections/drops from Metaplex, filtered to 3D Anvil ──
       const collectionEntries = Array.from(collectionInfoMap.entries());
       const jsonResults = await Promise.allSettled(
         collectionEntries.map(async ([addr, info]) => {
+          const dasAsset = dasMap.get(addr);
+          const uri = dasAsset?.content?.json_uri || info.uri;
           let json: any = {};
-          if (info.uri && !isLocalhostUrl(info.uri)) {
-            json = await tryFetchJsonWithIrysGateway(info.uri) || {};
+          if (uri && !isLocalhostUrl(uri)) {
+            json = await tryFetchJsonWithIrysGateway(uri) || {};
           }
-          return { addr, info, json };
+          return { addr, info, dasAsset, json };
         }),
       );
 
@@ -294,7 +317,7 @@ export default function DashboardPage() {
 
       for (const result of jsonResults) {
         if (result.status !== 'fulfilled') continue;
-        const { addr, info, json } = result.value;
+        const { addr, info, dasAsset, json } = result.value;
 
         // Only include collections/drops created through 3D Anvil
         if (!is3DAnvilAsset(json)) continue;
@@ -302,14 +325,14 @@ export default function DashboardPage() {
         const isDrop = isDropCollection(json);
         const item: CollectionItem = {
           address: addr,
-          name: info.name || 'Unnamed Collection',
-          symbol: info.symbol || '',
-          description: json.description,
-          image: resolveArweaveUrl(json.image),
+          name: dasAsset?.content?.metadata?.name || info.name || 'Unnamed Collection',
+          symbol: (dasAsset?.content?.metadata?.symbol as string) || info.symbol || '',
+          description: json.description || (dasAsset?.content?.metadata?.description as string),
+          image: resolveArweaveUrl(json.image || dasAsset?.content?.links?.image),
           itemCount: info.size,
           isDrop,
           mintConfig: isDrop ? json.mint_config : undefined,
-          createdAt: 0,
+          createdAt: creationOrderMap.get(addr) ?? 0,
         };
 
         if (isDrop) dropNfts.push(item);

@@ -75,12 +75,12 @@ function DropCard({ item }: { item: DiscoverItem }) {
         <span className="card-spark card-spark-br" aria-hidden />
 
         {/* Image */}
-        <div className="relative z-10 aspect-square bg-gray-200/40 dark:bg-gray-800/40 overflow-hidden">
+        <div className="relative z-10 aspect-square overflow-hidden">
           {item.image ? (
             <img
               src={item.image}
               alt={item.name}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-400/5 via-transparent to-transparent">
@@ -159,12 +159,12 @@ function CollectionCard({ item }: { item: DiscoverItem }) {
         <span className="card-spark card-spark-br" aria-hidden />
 
         {/* Image */}
-        <div className="relative z-10 aspect-square bg-gray-200/40 dark:bg-gray-800/40 overflow-hidden">
+        <div className="relative z-10 aspect-square overflow-hidden">
           {item.image ? (
             <img
               src={item.image}
               alt={item.name}
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-110"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-400/5 via-transparent to-transparent">
