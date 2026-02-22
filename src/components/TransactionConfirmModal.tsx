@@ -3,6 +3,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { SolanaIcon } from '@/components/SolanaIcon';
 import {
+  RENT_ESTIMATES,
   estimateDropRent,
   estimateCollectionRent,
   estimateMintRent,
@@ -73,9 +74,9 @@ export function buildMintTransaction(opts: {
       ? { label: 'Mint price', value: 'Free', valueClassName: 'text-green-600 dark:text-green-400' }
       : { label: 'Mint price', value: `${price.toFixed(price % 1 === 0 ? 1 : 4)} SOL`, solIcon: true },
     {
-      label: 'Account rent',
-      sublabel: '(est.)',
-      value: `~${rentSol.toFixed(4)} SOL`,
+      label: 'NFT account rent',
+      sublabel: '(one-time)',
+      value: `~${RENT_ESTIMATES.MINTED_NFT} SOL`,
       solIcon: true,
       muted: true,
     },
@@ -151,9 +152,9 @@ export function buildCreateDropTransaction(opts: {
   hasGuardGroups?: boolean;
 }): Omit<TransactionConfirmProps, 'open' | 'onConfirm' | 'onCancel'> {
   const isFree = opts.price === 0;
-  const { rentSol, breakdown: rentBreakdown } = estimateDropRent({ hasGuardGroups: opts.hasGuardGroups });
+  const { rentSol } = estimateDropRent({ hasGuardGroups: opts.hasGuardGroups });
   const storageCost = opts.storageCostSol ?? 0;
-  const totalEstimate = rentSol + storageCost;
+  const totalDeploymentCost = rentSol + storageCost;
 
   const storageLine: TxLineItem | null =
     opts.storageCostSol != null
@@ -168,23 +169,37 @@ export function buildCreateDropTransaction(opts: {
   const lineItems: TxLineItem[] = [
     { label: 'Collection', value: opts.collectionName },
     isFree
-      ? { label: 'Mint price', value: 'Free', valueClassName: 'text-green-600 dark:text-green-400' }
-      : { label: 'Mint price', value: `${opts.price} SOL`, solIcon: true },
+      ? { label: 'Mint price (per NFT)', value: 'Free', valueClassName: 'text-green-600 dark:text-green-400' }
+      : { label: 'Mint price (per NFT)', value: `${opts.price} SOL`, solIcon: true },
     ...(storageLine ? [storageLine] : []),
     {
-      label: 'Solana rent',
-      sublabel: '(est.)',
-      value: `~${rentSol.toFixed(4)} SOL`,
+      label: 'Collection NFT rent',
+      sublabel: '(one-time)',
+      value: `~${RENT_ESTIMATES.COLLECTION_NFT} SOL`,
+      solIcon: true,
+      muted: true,
+    },
+    {
+      label: 'Candy Machine rent',
+      sublabel: '(one-time)',
+      value: `~${RENT_ESTIMATES.CANDY_MACHINE} SOL`,
       solIcon: true,
       muted: true,
     },
     { label: 'Transactions', value: opts.hasGuardGroups ? '3–4 approvals' : '2–3 approvals' },
     {
-      label: 'Total cost',
+      label: 'Total deploy cost',
       sublabel: '(est.)',
-      value: `~${totalEstimate.toFixed(4)} SOL`,
+      value: `~${totalDeploymentCost.toFixed(4)} SOL`,
       solIcon: true,
       bold: true,
+    },
+  ];
+
+  const warnings: TxWarning[] = [
+    {
+      type: 'info',
+      message: 'Rent is a one-time SOL deposit to keep your accounts alive on Solana. Storage and rent are paid now; the mint price is charged to collectors later.',
     },
   ];
 
@@ -192,10 +207,7 @@ export function buildCreateDropTransaction(opts: {
     title: 'Launch Drop',
     description: 'This will create your collection and Candy Machine on the Solana blockchain.',
     lineItems,
-    warnings: [{
-      type: 'info',
-      message: `Solana rent (${rentBreakdown.map((b) => `${b.label}: ~${b.sol} SOL`).join(', ')}) is a one-time deposit to keep accounts alive on-chain.`,
-    }],
+    warnings,
     walletNote: 'Do not close the tab until all steps complete.',
     confirmLabel: 'Launch Drop',
   };
@@ -212,9 +224,9 @@ export function buildCreateCollectionTransaction(opts: {
       { label: 'Collection', value: opts.collectionName },
       { label: 'Transactions', value: '1–2 approvals' },
       {
-        label: 'Solana rent',
-        sublabel: '(est.)',
-        value: `~${rentSol.toFixed(4)} SOL`,
+        label: 'Collection NFT rent',
+        sublabel: '(one-time)',
+        value: `~${RENT_ESTIMATES.COLLECTION_NFT} SOL`,
         solIcon: true,
         muted: true,
       },
@@ -226,7 +238,7 @@ export function buildCreateCollectionTransaction(opts: {
         bold: true,
       },
     ],
-    walletNote: 'Your wallet will ask you to approve the on-chain collection creation.',
+    walletNote: 'Rent is a one-time SOL deposit to keep your collection account alive on Solana.',
     confirmLabel: 'Create Collection',
   };
 }
@@ -257,9 +269,10 @@ export function buildMintNftTransaction(opts: {
   storageCostSol?: number | null;
 }): Omit<TransactionConfirmProps, 'open' | 'onConfirm' | 'onCancel'> {
   const multi = opts.quantity > 1;
-  const { rentSol } = estimateMintRent({ quantity: opts.quantity });
+  const qty = opts.quantity;
+  const nftRent = RENT_ESTIMATES.MINTED_NFT * qty;
   const storageCost = opts.storageCostSol ?? 0;
-  const totalEstimate = rentSol + storageCost;
+  const totalEstimate = nftRent + storageCost;
 
   const storageLine: TxLineItem | null =
     opts.storageCostSol != null
@@ -272,20 +285,20 @@ export function buildMintNftTransaction(opts: {
       : null;
 
   return {
-    title: multi ? `Mint ${opts.quantity} NFTs` : 'Mint NFT',
-    description: `This will create ${multi ? `${opts.quantity} NFTs` : 'an NFT'} in the "${opts.collectionName}" collection on Solana.`,
+    title: multi ? `Mint ${qty} NFTs` : 'Mint NFT',
+    description: `This will create ${multi ? `${qty} NFTs` : 'an NFT'} in the "${opts.collectionName}" collection on Solana.`,
     lineItems: [
       { label: 'Collection', value: opts.collectionName },
-      { label: 'Quantity', value: `${opts.quantity}` },
+      { label: 'Quantity', value: `${qty}` },
       ...(storageLine ? [storageLine] : []),
       {
-        label: 'Solana rent',
-        sublabel: '(est.)',
-        value: `~${rentSol.toFixed(4)} SOL`,
+        label: multi ? `NFT account rent (×${qty})` : 'NFT account rent',
+        sublabel: '(one-time)',
+        value: `~${nftRent.toFixed(4)} SOL`,
         solIcon: true,
         muted: true,
       },
-      { label: 'Transactions', value: multi ? `${opts.quantity * 2}–${opts.quantity * 3} approvals` : '2–3 approvals' },
+      { label: 'Transactions', value: multi ? `${qty * 2}–${qty * 3} approvals` : '2–3 approvals' },
       {
         label: 'Total cost',
         sublabel: '(est.)',
@@ -296,10 +309,10 @@ export function buildMintNftTransaction(opts: {
     ],
     warnings: multi ? [{
       type: 'info',
-      message: `Minting ${opts.quantity} NFTs requires multiple wallet approvals. Each NFT needs a separate creation and verification transaction.`,
+      message: `Minting ${qty} NFTs requires multiple wallet approvals. Each NFT needs a separate creation and verification transaction.`,
     }] : undefined,
     walletNote: 'Do not close the tab until all steps complete.',
-    confirmLabel: multi ? `Mint ${opts.quantity} NFTs` : 'Mint NFT',
+    confirmLabel: multi ? `Mint ${qty} NFTs` : 'Mint NFT',
   };
 }
 
