@@ -2,9 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useWallet } from '@solana/wallet-adapter-react';
 import { useMetaplex } from '@/lib/metaplex';
 import { PublicKey } from '@solana/web3.js';
 import { EXPLORER_URL, SOLANA_NETWORK, resolveArweaveUrl, tryFetchJsonWithIrysGateway } from '@/lib/constants';
+import { getAsset } from '@/lib/das';
 import { ImagePreview } from '@/components/ImagePreview';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
 import { IconVRM, IconGLB, Icon3DCube } from '@/components/AssetIcons';
@@ -200,6 +202,41 @@ async function downloadFile(url: string, filename: string) {
   }
 }
 
+/** Open-source licenses that allow public download. */
+const OPEN_SOURCE_LICENSES = new Set([
+  'CC0', 'CC_BY_4.0', 'CC_BY_SA_4.0', 'MIT', 'Apache_2.0', 'GPL_3.0',
+  'CC BY 4.0', 'CC BY-SA 4.0', 'CC0 (Public Domain)', 'MIT License', 'Apache 2.0', 'GPL 3.0',
+]);
+
+/** True if license string indicates open source (download allowed for non-owners). */
+function isOpenSourceLicenseValue(license: string): boolean {
+  if (!license || typeof license !== 'string') return false;
+  const normalized = license.trim();
+  return OPEN_SOURCE_LICENSES.has(normalized) ||
+    normalized.toLowerCase().startsWith('cc0') ||
+    normalized.toLowerCase().includes('cc by');
+}
+
+/**
+ * Whether the 3D model can be downloaded by non-owners based on license.
+ * VRM: uses parsed VRM metadata (license + allowedUserName).
+ * GLB: uses NFT metadata attributes (License, Commercial Use).
+ */
+function isLicenseOpenSource(
+  mainModelIsVrm: boolean,
+  vrmParsed: VRMMetadata | null,
+  attributes: Array<{ trait_type?: string; value?: unknown }>,
+): boolean {
+  if (mainModelIsVrm && vrmParsed) {
+    const allowed = (vrmParsed.allowedUserName || '').toLowerCase();
+    if (allowed.includes('only') || allowed.includes('explicitly')) return false;
+    return isOpenSourceLicenseValue(vrmParsed.license || '');
+  }
+  const licenseAttr = attributes.find((a) => (a.trait_type || '').toLowerCase() === 'license');
+  const licenseVal = licenseAttr?.value != null ? String(licenseAttr.value) : '';
+  return isOpenSourceLicenseValue(licenseVal);
+}
+
 /** Build a clean download filename from an NFT name and a URI. */
 function buildDownloadFilename(nftName: string, uri: string, mimeHint?: string): string {
   const ext = getExtFromUri(uri).toLowerCase();
@@ -226,10 +263,12 @@ export default function ItemPage() {
   const params = useParams();
   const address = params.address as string;
   const router = useRouter();
+  const wallet = useWallet();
   const metaplex = useMetaplex();
 
   const [nft, setNft] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [nftOwner, setNftOwner] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<TabId>('details');
   const [activeModelIndex, setActiveModelIndex] = useState(0);
   const [tPose, setTPose] = useState(false);
@@ -246,6 +285,14 @@ export default function ItemPage() {
     if (!address) return;
     loadNFT(address);
   }, [address, metaplex]);
+
+  // Fetch NFT owner from DAS (for download gating)
+  useEffect(() => {
+    if (!address) return;
+    getAsset(address).then((asset) => {
+      setNftOwner(asset?.ownership?.owner ?? null);
+    });
+  }, [address]);
 
   async function loadNFT(nftAddress: string) {
     setLoading(true);
@@ -316,6 +363,14 @@ export default function ItemPage() {
     if (activeTab === 'vrm') fetchAndParseVRM();
   }, [activeTab, fetchAndParseVRM]);
 
+  // Also parse when nft loads and main model is VRM (for download license gate)
+  useEffect(() => {
+    const animUrl = resolveArweaveUrl(nft?.json?.animation_url);
+    if (nft && animUrl && animUrl.toLowerCase().endsWith('.vrm')) {
+      fetchAndParseVRM();
+    }
+  }, [nft?.json?.animation_url, fetchAndParseVRM]);
+
   // ── Derived data ──
   const json = nft?.json || {};
   const attributes = json.attributes || [];
@@ -357,6 +412,19 @@ export default function ItemPage() {
 
   const activeViewerUrl = viewerModels[activeModelIndex]?.url || null;
   const activeModelIsVrm = viewerModels[activeModelIndex]?.isVrm ?? false;
+
+  // Main model format (for license check: VRM uses vrmParsed, GLB uses attributes)
+  const mainModelExt = resolvedAnimationUrl ? getExtFromUri(resolvedAnimationUrl).toLowerCase() : '';
+  const mainModelIsVrm = mainModelExt === 'vrm';
+
+  // Download gating: owner OR open-source license
+  const isOwner = !!(
+    wallet.publicKey &&
+    nftOwner &&
+    wallet.publicKey.toString() === nftOwner
+  );
+  const isLicenseOpen = isLicenseOpenSource(mainModelIsVrm, vrmParsed, attributes);
+  const canDownload = isOwner || isLicenseOpen;
 
   // Tabs
   const tabs = useMemo(() => {
@@ -846,15 +914,26 @@ export default function ItemPage() {
                                 {activeModelIndex === viewerIdx ? 'Viewing' : 'View 3D'}
                               </button>
                             )}
-                            <button
-                              onClick={() => downloadFile(file.uri, buildDownloadFilename(nft.name, file.uri, file.resolvedType))}
-                              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                              title="Download"
-                            >
-                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                              </svg>
-                            </button>
+                            {canDownload ? (
+                              <button
+                                onClick={() => downloadFile(file.uri, buildDownloadFilename(nft.name, file.uri, file.resolvedType))}
+                                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                                title="Download"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                              </button>
+                            ) : (
+                              <span
+                                className="text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                                title="Download available only to owners or for open-source licensed items"
+                              >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                </svg>
+                              </span>
+                            )}
                           </div>
                         </div>
                       );
@@ -899,17 +978,25 @@ export default function ItemPage() {
               <section>
                 <p className="text-[11px] uppercase tracking-widest text-gray-400 dark:text-gray-500 mb-3">All Files ({typedFiles.length})</p>
                 <div className="space-y-1">
-                  {typedFiles.map((file, i) => (
-                    <div key={i} className="flex items-center justify-between rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/40 px-3 py-2 transition-colors">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span className="text-xs font-mono text-gray-400 dark:text-gray-500 w-4 text-right flex-shrink-0">{i + 1}</span>
-                        <span className="text-sm text-gray-600 dark:text-gray-300 truncate">{getFileTypeLabel(file.resolvedType)}</span>
+                  {typedFiles.map((file, i) => {
+                    const isModel = isModelType(file.resolvedType);
+                    const showOpen = isModel ? canDownload : true;
+                    return (
+                      <div key={i} className="flex items-center justify-between rounded-md hover:bg-gray-50 dark:hover:bg-gray-800/40 px-3 py-2 transition-colors">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-xs font-mono text-gray-400 dark:text-gray-500 w-4 text-right flex-shrink-0">{i + 1}</span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300 truncate">{getFileTypeLabel(file.resolvedType)}</span>
+                        </div>
+                        {showOpen ? (
+                          <a href={file.uri} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 flex-shrink-0 ml-3 transition-colors">
+                            Open
+                          </a>
+                        ) : (
+                          <span className="text-xs text-gray-300 dark:text-gray-600 flex-shrink-0 ml-3" title="Owner or open-source only">—</span>
+                        )}
                       </div>
-                      <a href={file.uri} target="_blank" rel="noopener noreferrer" className="text-xs text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 flex-shrink-0 ml-3 transition-colors">
-                        Open
-                      </a>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
             </div>
@@ -1128,18 +1215,30 @@ export default function ItemPage() {
           </div>
         )}
 
-        {/* Download */}
+        {/* Download — only for owners or open-source licensed items */}
         {activeViewerUrl && (
           <div className="absolute bottom-4 right-4 flex gap-2">
-            <button
-              onClick={() => downloadFile(activeViewerUrl, buildDownloadFilename(nft.name, activeViewerUrl, activeModelIsVrm ? 'model/vrm' : 'model/gltf-binary'))}
-              className="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white px-4 py-2 text-xs font-medium transition-colors inline-flex items-center gap-2"
-            >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Download {activeModelIsVrm ? 'VRM' : 'Model'}
-            </button>
+            {canDownload ? (
+              <button
+                onClick={() => downloadFile(activeViewerUrl, buildDownloadFilename(nft.name, activeViewerUrl, activeModelIsVrm ? 'model/vrm' : 'model/gltf-binary'))}
+                className="bg-black/60 hover:bg-black/80 backdrop-blur-md text-white px-4 py-2 text-xs font-medium transition-colors inline-flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Download {activeModelIsVrm ? 'VRM' : 'Model'}
+              </button>
+            ) : (
+              <span
+                className="bg-black/40 backdrop-blur-md text-white/60 px-4 py-2 text-xs font-medium inline-flex items-center gap-2 cursor-not-allowed"
+                title="Download available only to owners or for open-source licensed items"
+              >
+                <svg className="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+                Download (owner or open-source only)
+              </span>
+            )}
           </div>
         )}
       </div>
