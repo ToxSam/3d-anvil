@@ -60,9 +60,10 @@ export function isLocalhostUrl(url: string): boolean {
 }
 
 /**
- * On Irys devnet, the SDK stores data on the Irys gateway but returns
- * `arweave.net` URIs which 404.  On devnet this rewrites to the working
- * Irys gateway URL.  On mainnet it's a no-op (arweave.net URLs are correct).
+ * Rewrites `arweave.net` display URLs to the Irys gateway for immediate
+ * availability. Files uploaded via Irys land on `gateway.irys.xyz` instantly;
+ * propagation to `arweave.net` can take 10–60 min on mainnet.
+ * The permanent on-chain URI stays as `arweave.net` — this only affects rendering.
  *
  * Localhost URLs are silently dropped so the deployed site never attempts to
  * fetch assets from http://localhost, which triggers mixed-content warnings.
@@ -70,7 +71,7 @@ export function isLocalhostUrl(url: string): boolean {
 export function resolveArweaveUrl(url: string | undefined | null): string | undefined {
   if (!url) return undefined;
   if (isLocalhostUrl(url)) return undefined;
-  if (SOLANA_NETWORK !== 'mainnet-beta' && url.includes('arweave.net')) {
+  if (url.includes('arweave.net')) {
     return url.replace('https://arweave.net/', 'https://gateway.irys.xyz/');
   }
   return url;
@@ -78,10 +79,10 @@ export function resolveArweaveUrl(url: string | undefined | null): string | unde
 
 /**
  * Deep-rewrite all `arweave.net` string values in a JSON object to
- * `gateway.irys.xyz` on devnet.  Returns a new object (does not mutate).
+ * `gateway.irys.xyz` for immediate display availability on both devnet and mainnet.
+ * Returns a new object (does not mutate).
  */
 function rewriteArweaveUrlsInJson(json: any): any {
-  if (SOLANA_NETWORK === 'mainnet-beta') return json;
   if (!json || typeof json !== 'object') return json;
 
   const rewrite = (val: any): any => {

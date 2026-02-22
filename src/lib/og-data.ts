@@ -13,7 +13,7 @@ const RPC_URL =
 function resolveImageUrl(url: string | null | undefined): string | null {
   if (!url) return null;
   if (url.startsWith('http://localhost')) return null;
-  if (NETWORK !== 'mainnet-beta' && url.includes('arweave.net')) {
+  if (url.includes('arweave.net')) {
     return url.replace('https://arweave.net/', 'https://gateway.irys.xyz/');
   }
   return url;
@@ -69,7 +69,7 @@ export async function fetchOGJson(
 ): Promise<any | null> {
   if (!uri) return null;
   let url = uri;
-  if (NETWORK !== 'mainnet-beta' && url.includes('arweave.net')) {
+  if (url.includes('arweave.net')) {
     url = url.replace('https://arweave.net/', 'https://gateway.irys.xyz/');
   }
   try {
