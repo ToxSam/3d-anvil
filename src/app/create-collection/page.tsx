@@ -13,6 +13,7 @@ import { MintConfig, DEFAULT_MINT_CONFIG } from '@/lib/types/mintConfig';
 import { ForgeNumberInput } from '@/components/ForgeNumberInput';
 import { TransactionConfirmModal, buildCreateCollectionTransaction } from '@/components/TransactionConfirmModal';
 import { TransactionProgressModal, getCreateCollectionSteps } from '@/components/TransactionProgressModal';
+import { checkSolBalance, estimateCollectionRent } from '@/lib/transactionUtils';
 import {
   COLLECTION_TYPES,
   COLLECTION_SCHEMAS,
@@ -148,6 +149,19 @@ export default function CreateCollectionPage() {
       setStatus('Storing metadata on Arweave...');
       setCollectionPhase('uploading-metadata');
       const metadataUrl = await uploadMetadataToArweave(metaplex, metadata);
+
+      setStatus('Checking wallet balance...');
+      const { rentSol } = estimateCollectionRent();
+      const { sufficient, balance } = await checkSolBalance(
+        metaplex.connection,
+        wallet.publicKey!,
+        rentSol,
+      );
+      if (!sufficient) {
+        throw new Error(
+          `Insufficient SOL. Creating a collection requires ~${rentSol} SOL for account rent, but your wallet only has ${balance.toFixed(4)} SOL.`,
+        );
+      }
 
       setStatus('Creating collection on Solana — approve in your wallet...');
       setCollectionPhase('creating-onchain');

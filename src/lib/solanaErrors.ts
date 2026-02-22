@@ -69,6 +69,14 @@ const ERROR_PATTERNS: { test: (msg: string) => boolean; friendly: string }[] = [
     test: (m) => /Incorrect account owner/i.test(m),
     friendly: 'On-chain account mismatch. The collection may still be propagating — wait a moment and retry.',
   },
+  {
+    test: (m) => /Simulation failed.*InsufficientFundsForRent/i.test(m),
+    friendly: 'Insufficient SOL to cover account rent. Please add more SOL to your wallet.',
+  },
+  {
+    test: (m) => /Simulation failed/i.test(m),
+    friendly: 'Transaction pre-check failed. This usually means an on-chain condition was not met — see details below.',
+  },
 ];
 
 /**

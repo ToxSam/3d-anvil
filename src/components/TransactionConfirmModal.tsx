@@ -2,8 +2,11 @@
 
 import { useEffect, useRef, type ReactNode } from 'react';
 import { SolanaIcon } from '@/components/SolanaIcon';
-
-const ESTIMATED_NETWORK_FEE_SOL = 0.005;
+import {
+  estimateDropRent,
+  estimateCollectionRent,
+  estimateMintRent,
+} from '@/lib/transactionUtils';
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
@@ -56,10 +59,12 @@ export function buildMintTransaction(opts: {
   price: number;
   phaseName?: string;
   requiresAllowlistProof?: boolean;
+  isCandyMachine?: boolean;
 }): Omit<TransactionConfirmProps, 'open' | 'onConfirm' | 'onCancel'> {
   const { collectionName, price, phaseName, requiresAllowlistProof } = opts;
   const isFree = price === 0;
-  const totalSol = price + ESTIMATED_NETWORK_FEE_SOL;
+  const { rentSol } = estimateMintRent({ isCandyMachine: opts.isCandyMachine });
+  const totalSol = price + rentSol;
 
   const lineItems: TxLineItem[] = [
     { label: 'Collection', value: collectionName },
@@ -68,9 +73,9 @@ export function buildMintTransaction(opts: {
       ? { label: 'Mint price', value: 'Free', valueClassName: 'text-green-600 dark:text-green-400' }
       : { label: 'Mint price', value: `${price.toFixed(price % 1 === 0 ? 1 : 4)} SOL`, solIcon: true },
     {
-      label: 'Network fee',
+      label: 'Account rent',
       sublabel: '(est.)',
-      value: `~${ESTIMATED_NETWORK_FEE_SOL} SOL`,
+      value: `~${rentSol.toFixed(4)} SOL`,
       solIcon: true,
       muted: true,
     },
@@ -114,6 +119,7 @@ export function buildMintTransaction(opts: {
 }
 
 export function buildSaveSettingsTransaction(): Omit<TransactionConfirmProps, 'open' | 'onConfirm' | 'onCancel'> {
+  const txFee = 0.000005;
   return {
     title: 'Update On-Chain Rules',
     description: 'This will send a transaction to update your drop\'s mint rules (price, dates, allowlist, etc.) on the Solana blockchain.',
@@ -122,13 +128,13 @@ export function buildSaveSettingsTransaction(): Omit<TransactionConfirmProps, 'o
       {
         label: 'Network fee',
         sublabel: '(est.)',
-        value: `~${ESTIMATED_NETWORK_FEE_SOL} SOL`,
+        value: `~${txFee} SOL`,
         solIcon: true,
         muted: true,
       },
       {
         label: 'Total (max)',
-        value: `~${ESTIMATED_NETWORK_FEE_SOL} SOL`,
+        value: `~${txFee} SOL`,
         solIcon: true,
         bold: true,
       },
@@ -142,8 +148,13 @@ export function buildCreateDropTransaction(opts: {
   collectionName: string;
   price: number;
   storageCostSol?: number | null;
+  hasGuardGroups?: boolean;
 }): Omit<TransactionConfirmProps, 'open' | 'onConfirm' | 'onCancel'> {
   const isFree = opts.price === 0;
+  const { rentSol, breakdown: rentBreakdown } = estimateDropRent({ hasGuardGroups: opts.hasGuardGroups });
+  const storageCost = opts.storageCostSol ?? 0;
+  const totalEstimate = rentSol + storageCost;
+
   const storageLine: TxLineItem | null =
     opts.storageCostSol != null
       ? {
@@ -160,13 +171,20 @@ export function buildCreateDropTransaction(opts: {
       ? { label: 'Mint price', value: 'Free', valueClassName: 'text-green-600 dark:text-green-400' }
       : { label: 'Mint price', value: `${opts.price} SOL`, solIcon: true },
     ...(storageLine ? [storageLine] : []),
-    { label: 'Transactions', value: '2–3 approvals' },
     {
-      label: 'Network fee',
+      label: 'Solana rent',
       sublabel: '(est.)',
-      value: '~0.02 SOL',
+      value: `~${rentSol.toFixed(4)} SOL`,
       solIcon: true,
       muted: true,
+    },
+    { label: 'Transactions', value: opts.hasGuardGroups ? '3–4 approvals' : '2–3 approvals' },
+    {
+      label: 'Total cost',
+      sublabel: '(est.)',
+      value: `~${totalEstimate.toFixed(4)} SOL`,
+      solIcon: true,
+      bold: true,
     },
   ];
 
@@ -176,7 +194,7 @@ export function buildCreateDropTransaction(opts: {
     lineItems,
     warnings: [{
       type: 'info',
-      message: 'One wallet approval will fund Arweave storage for all files. Then a few more approvals will create the collection and Candy Machine on-chain.',
+      message: `Solana rent (${rentBreakdown.map((b) => `${b.label}: ~${b.sol} SOL`).join(', ')}) is a one-time deposit to keep accounts alive on-chain.`,
     }],
     walletNote: 'Do not close the tab until all steps complete.',
     confirmLabel: 'Launch Drop',
@@ -186,6 +204,7 @@ export function buildCreateDropTransaction(opts: {
 export function buildCreateCollectionTransaction(opts: {
   collectionName: string;
 }): Omit<TransactionConfirmProps, 'open' | 'onConfirm' | 'onCancel'> {
+  const { rentSol } = estimateCollectionRent();
   return {
     title: 'Create Collection',
     description: 'This will create a new collection on the Solana blockchain. You will need to approve the transaction in your wallet.',
@@ -193,11 +212,18 @@ export function buildCreateCollectionTransaction(opts: {
       { label: 'Collection', value: opts.collectionName },
       { label: 'Transactions', value: '1–2 approvals' },
       {
-        label: 'Network fee',
+        label: 'Solana rent',
         sublabel: '(est.)',
-        value: '~0.01 SOL',
+        value: `~${rentSol.toFixed(4)} SOL`,
         solIcon: true,
         muted: true,
+      },
+      {
+        label: 'Total cost',
+        sublabel: '(est.)',
+        value: `~${rentSol.toFixed(4)} SOL`,
+        solIcon: true,
+        bold: true,
       },
     ],
     walletNote: 'Your wallet will ask you to approve the on-chain collection creation.',
@@ -206,6 +232,7 @@ export function buildCreateCollectionTransaction(opts: {
 }
 
 export function buildUpdateCollectionTransaction(): Omit<TransactionConfirmProps, 'open' | 'onConfirm' | 'onCancel'> {
+  const txFee = 0.000005;
   return {
     title: 'Update Collection',
     description: 'This will update your collection\'s on-chain metadata (image, settings, royalties). You\'ll need to approve the transaction in your wallet.',
@@ -214,7 +241,7 @@ export function buildUpdateCollectionTransaction(): Omit<TransactionConfirmProps
       {
         label: 'Network fee',
         sublabel: '(est.)',
-        value: `~${ESTIMATED_NETWORK_FEE_SOL} SOL`,
+        value: `~${txFee} SOL`,
         solIcon: true,
         muted: true,
       },
@@ -230,6 +257,10 @@ export function buildMintNftTransaction(opts: {
   storageCostSol?: number | null;
 }): Omit<TransactionConfirmProps, 'open' | 'onConfirm' | 'onCancel'> {
   const multi = opts.quantity > 1;
+  const { rentSol } = estimateMintRent({ quantity: opts.quantity });
+  const storageCost = opts.storageCostSol ?? 0;
+  const totalEstimate = rentSol + storageCost;
+
   const storageLine: TxLineItem | null =
     opts.storageCostSol != null
       ? {
@@ -247,13 +278,20 @@ export function buildMintNftTransaction(opts: {
       { label: 'Collection', value: opts.collectionName },
       { label: 'Quantity', value: `${opts.quantity}` },
       ...(storageLine ? [storageLine] : []),
-      { label: 'Transactions', value: multi ? `${opts.quantity * 2}–${opts.quantity * 3} approvals` : '2–3 approvals' },
       {
-        label: 'Network fee',
+        label: 'Solana rent',
         sublabel: '(est.)',
-        value: `~${(ESTIMATED_NETWORK_FEE_SOL * opts.quantity).toFixed(3)} SOL`,
+        value: `~${rentSol.toFixed(4)} SOL`,
         solIcon: true,
         muted: true,
+      },
+      { label: 'Transactions', value: multi ? `${opts.quantity * 2}–${opts.quantity * 3} approvals` : '2–3 approvals' },
+      {
+        label: 'Total cost',
+        sublabel: '(est.)',
+        value: `~${totalEstimate.toFixed(4)} SOL`,
+        solIcon: true,
+        bold: true,
       },
     ],
     warnings: multi ? [{

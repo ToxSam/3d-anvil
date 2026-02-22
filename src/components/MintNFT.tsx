@@ -26,6 +26,7 @@ import { ForgeNumberInput } from '@/components/ForgeNumberInput';
 import { TransactionConfirmModal, buildMintNftTransaction } from '@/components/TransactionConfirmModal';
 import { TransactionProgressModal, getMintNftSteps } from '@/components/TransactionProgressModal';
 import { parseSolanaError } from '@/lib/solanaErrors';
+import { checkSolBalance, estimateMintRent } from '@/lib/transactionUtils';
 
 const VRMViewer = dynamic(
   () => import('@/components/VRMViewer').then((mod) => mod.VRMViewer),
@@ -631,7 +632,19 @@ export function MintNFT({ collectionAddress, collectionName, collectionSymbol, o
           metadataUrl = await uploadMetadataToArweave(metaplex, metadata);
         }
 
-        // ── Phase 5: Create NFT on Solana ──
+        // ── Phase 5: Pre-flight balance check + Create NFT on Solana ──
+        const { rentSol: nftRentSol } = estimateMintRent();
+        const { sufficient: hasSol, balance: walletBal } = await checkSolBalance(
+          metaplex.connection,
+          wallet.publicKey!,
+          nftRentSol,
+        );
+        if (!hasSol) {
+          throw new Error(
+            `Insufficient SOL. Minting requires ~${nftRentSol} SOL for account rent, but your wallet only has ${walletBal.toFixed(4)} SOL.`,
+          );
+        }
+
         setMintPhase('minting');
         setStatus(`Creating NFT on Solana${editionLabel}\u2026 Approve in Phantom.`);
         const { nft } = await metaplex.nfts().create({

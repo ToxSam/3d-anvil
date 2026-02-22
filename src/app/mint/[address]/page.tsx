@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useMetaplex } from '@/lib/metaplex';
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { prepareAndSimulateRawTransaction } from '@/lib/transactionUtils';
 import { WalletButton } from '@/components/WalletButton';
 import { ShareButtons } from '@/components/ShareButtons';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
@@ -235,7 +236,6 @@ export default function PublicMintPage() {
               : new PublicKey(creatorAddress.toString());
 
           const connection = metaplex.connection;
-          const { blockhash } = await connection.getLatestBlockhash();
           const totalLamports = Math.round(actualPrice * LAMPORTS_PER_SOL);
 
           let payoutSplits: { address: PublicKey; percent: number }[] | null = null;
@@ -267,10 +267,7 @@ export default function PublicMintPage() {
           const remainder = totalLamports - allocated;
           if (baseAllocations.length > 0) baseAllocations[0] += remainder;
 
-          const tx = new Transaction({
-            recentBlockhash: blockhash,
-            feePayer: wallet.publicKey,
-          });
+          const tx = new Transaction({ feePayer: wallet.publicKey });
           payoutSplits.forEach((s, i) => {
             const lamports = baseAllocations[i] || 0;
             if (lamports <= 0) return;
@@ -282,6 +279,8 @@ export default function PublicMintPage() {
               }),
             );
           });
+
+          await prepareAndSimulateRawTransaction(connection, tx);
 
           const signed = await wallet.signTransaction(tx);
           await connection.sendRawTransaction(signed.serialize());

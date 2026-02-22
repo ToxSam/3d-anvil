@@ -30,6 +30,7 @@ import DateTimePicker from '@/components/DateTimePicker';
 import { ForgeNumberInput } from '@/components/ForgeNumberInput';
 import { TransactionConfirmModal, buildCreateDropTransaction } from '@/components/TransactionConfirmModal';
 import { TransactionProgressModal, getCreateDropSteps } from '@/components/TransactionProgressModal';
+import { checkSolBalance, estimateDropRent } from '@/lib/transactionUtils';
 
 const VRMViewer = dynamic(
   () => import('@/components/VRMViewer').then((mod) => mod.VRMViewer),
@@ -919,6 +920,22 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
       }
 
       setDropPhase('collection');
+      setStatus('Checking wallet balance\u2026');
+      const { rentSol: dropRentSol } = estimateDropRent({
+        hasGuardGroups: (mintSettingsTab === 'advanced' && mintPhases.length > 0) || !!mintConfig.isDutchAuction,
+      });
+      const totalNeeded = dropRentSol + (storageCostSol ?? 0);
+      const { sufficient, balance } = await checkSolBalance(
+        metaplex.connection,
+        wallet.publicKey!,
+        totalNeeded,
+      );
+      if (!sufficient) {
+        throw new Error(
+          `Insufficient SOL. Creating this drop requires ~${totalNeeded.toFixed(4)} SOL (rent + storage), but your wallet only has ${balance.toFixed(4)} SOL.`,
+        );
+      }
+
       setStatus('Creating collection on Solana\u2026 Approve in your wallet.');
       const creatorsList =
         finalMintConfig.revenueSplits && finalMintConfig.revenueSplits.length > 0
@@ -3179,6 +3196,7 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
               collectionName,
               price: mintConfig.price,
               storageCostSol,
+              hasGuardGroups: (mintSettingsTab === 'advanced' && mintPhases.length > 0) || !!mintConfig.isDutchAuction,
             })}
             onConfirm={handleCreateDrop}
             onCancel={() => setShowLaunchConfirm(false)}

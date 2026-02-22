@@ -30,6 +30,7 @@ import { TokenStandard } from '@metaplex-foundation/mpl-token-metadata';
 import { setComputeUnitLimit } from '@metaplex-foundation/mpl-toolbox';
 
 import type { MintConfig, MintPhaseConfig } from './types/mintConfig';
+import { sendWithSimulation } from './transactionUtils';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -365,7 +366,7 @@ export async function createDropCandyMachine(
     guards: hasGroups ? emptyGuards() : guards,
   });
 
-  await builder.sendAndConfirm(umi);
+  await sendWithSimulation(umi, builder);
 
   const cmAddress = candyMachineSigner.publicKey.toString();
   const cm = await fetchCandyMachineWithRetry(umi, candyMachineSigner.publicKey);
@@ -378,7 +379,7 @@ export async function createDropCandyMachine(
       guards,
       groups,
     });
-    await guardUpdateBuilder.sendAndConfirm(umi);
+    await sendWithSimulation(umi, guardUpdateBuilder);
   }
 
   return {
@@ -472,7 +473,7 @@ export async function mintFromCandyMachine(
     });
   }
 
-  await builder.sendAndConfirm(umi);
+  await sendWithSimulation(umi, builder);
 
   return { mintAddress: nftMint.publicKey.toString() };
 }
@@ -498,7 +499,7 @@ export async function updateDropGuards(
     groups: groups.length > 0 ? groups : [],
   });
 
-  await builder.sendAndConfirm(umi);
+  await sendWithSimulation(umi, builder);
 }
 
 // ── Fetch state ──────────────────────────────────────────────────────────────
@@ -776,7 +777,7 @@ async function proveAllowlist(
     group: group ? some(group) : none(),
   });
 
-  await builder.sendAndConfirm(umi);
+  await sendWithSimulation(umi, builder);
 }
 
 // ── Dutch Auction groups ─────────────────────────────────────────────────────

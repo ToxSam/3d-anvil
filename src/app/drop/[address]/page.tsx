@@ -8,6 +8,7 @@ import { useMetaplex } from '@/lib/metaplex';
 import { useUmi } from '@/lib/umi';
 import { mintFromCandyMachine, updateDropGuards, fetchCandyMachineState, fetchPhasesFromCandyMachine, fetchDutchAuctionConfigFromCandyMachine, getCurrentDutchAuctionStepPrice, DUTCH_AUCTION_STEPS, type CandyMachineState } from '@/lib/candyMachine';
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
+import { prepareAndSimulateRawTransaction } from '@/lib/transactionUtils';
 import { ShareButtons } from '@/components/ShareButtons';
 import { SolanaIcon } from '@/components/SolanaIcon';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
@@ -1042,6 +1043,7 @@ export default function DropPage() {
       price,
       phaseName,
       requiresAllowlistProof,
+      isCandyMachine: !!(cmState && mintConfig.candyMachineAddress),
     });
   }
 
@@ -1110,17 +1112,15 @@ export default function DropPage() {
               : new PublicKey(creatorAddress.toString());
 
           const connection = metaplex.connection;
-          const { blockhash } = await connection.getLatestBlockhash();
-          const tx = new Transaction({
-            recentBlockhash: blockhash,
-            feePayer: wallet.publicKey,
-          }).add(
+          const tx = new Transaction({ feePayer: wallet.publicKey }).add(
             SystemProgram.transfer({
               fromPubkey: wallet.publicKey,
               toPubkey: creatorKey,
               lamports: Math.round(actualPrice * LAMPORTS_PER_SOL),
             }),
           );
+
+          await prepareAndSimulateRawTransaction(connection, tx);
 
           const signed = await wallet.signTransaction(tx);
           await connection.sendRawTransaction(signed.serialize());

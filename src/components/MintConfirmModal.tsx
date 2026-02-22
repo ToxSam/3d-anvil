@@ -10,6 +10,7 @@ export interface MintConfirmDetails {
   price: number;
   phaseName?: string;
   requiresAllowlistProof?: boolean;
+  isCandyMachine?: boolean;
 }
 
 interface MintConfirmModalProps {
