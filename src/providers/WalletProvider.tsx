@@ -11,8 +11,7 @@ import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { PhantomWalletAdapter } from '@solana/wallet-adapter-wallets';
 
 import '@solana/wallet-adapter-react-ui/styles.css';
-
-const SOLANA_NETWORK = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet';
+import { SOLANA_NETWORK, SOLANA_WS_URL } from '@/lib/constants';
 
 /**
  * Suppress errors thrown by MetaMask or other non-Solana wallets that inject
@@ -75,16 +74,10 @@ export function WalletContextProvider({
     return `${window.location.origin}/api/rpc`;
   }, []);
 
-  // WebSocket goes to the public Solana endpoint directly (free, supports WS).
-  // Vercel serverless can't handle WebSocket, so we bypass the proxy for WS.
-  // This is only used for transaction confirmation subscriptions.
-  const wsEndpoint = useMemo(
-    () =>
-      SOLANA_NETWORK === 'mainnet-beta'
-        ? 'wss://api.mainnet-beta.solana.com'
-        : 'wss://api.devnet.solana.com',
-    [],
-  );
+  // WebSocket for transaction confirmation subscriptions.
+  // Uses NEXT_PUBLIC_SOLANA_WS_URL if set (recommended for mainnet — point to Helius WS).
+  // Falls back to the public Solana endpoint, which is unreliable on mainnet.
+  const wsEndpoint = useMemo(() => SOLANA_WS_URL, []);
 
   const wallets = useMemo(() => [new PhantomWalletAdapter()], []);
 

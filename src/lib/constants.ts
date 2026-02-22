@@ -159,9 +159,10 @@ export const SOLANA_RPC_URL =
  * No API key needed; this is free tier.
  */
 export const SOLANA_WS_URL =
-  SOLANA_NETWORK === 'mainnet-beta'
+  process.env.NEXT_PUBLIC_SOLANA_WS_URL ||
+  (SOLANA_NETWORK === 'mainnet-beta'
     ? 'wss://api.mainnet-beta.solana.com'
-    : 'wss://api.devnet.solana.com';
+    : 'wss://api.devnet.solana.com');
 
 export const IRYS_NODE =
   process.env.NEXT_PUBLIC_IRYS_NODE || 'https://devnet.irys.xyz';
