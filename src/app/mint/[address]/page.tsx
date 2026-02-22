@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useMetaplex } from '@/lib/metaplex';
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { prepareAndSimulateRawTransaction } from '@/lib/transactionUtils';
+import { prepareAndSimulateRawTransaction, createNftWalletFirst } from '@/lib/transactionUtils';
 import { WalletButton } from '@/components/WalletButton';
 import { ShareButtons } from '@/components/ShareButtons';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
@@ -310,20 +310,24 @@ export default function PublicMintPage() {
         }
       }
 
-      const { nft } = await metaplex.nfts().create({
-        uri: collection.uri,
-        name: `${collection.name} #${stats.minted + 1}`,
-        symbol: collection.symbol || '',
-        sellerFeeBasisPoints: collection.sellerFeeBasisPoints || 500,
-        collection: new PublicKey(address),
-        ...(royaltyCreators ? { creators: royaltyCreators } : {}),
-      });
+      const { mintAddress: nftMintAddress } = await createNftWalletFirst(
+        metaplex,
+        { publicKey: wallet.publicKey!, signTransaction: wallet.signTransaction! },
+        {
+          uri: collection.uri,
+          name: `${collection.name} #${stats.minted + 1}`,
+          symbol: collection.symbol || '',
+          sellerFeeBasisPoints: collection.sellerFeeBasisPoints || 500,
+          collection: new PublicKey(address),
+          ...(royaltyCreators ? { creators: royaltyCreators } : {}),
+        },
+      );
 
       // Verify collection membership
       setMintPhase('verifying');
       try {
         await metaplex.nfts().verifyCollection({
-          mintAddress: nft.address,
+          mintAddress: nftMintAddress,
           collectionMintAddress: new PublicKey(address),
         });
       } catch (verifyErr) {

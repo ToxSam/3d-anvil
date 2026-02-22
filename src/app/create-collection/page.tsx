@@ -13,7 +13,7 @@ import { MintConfig, DEFAULT_MINT_CONFIG } from '@/lib/types/mintConfig';
 import { ForgeNumberInput } from '@/components/ForgeNumberInput';
 import { TransactionConfirmModal, buildCreateCollectionTransaction } from '@/components/TransactionConfirmModal';
 import { TransactionProgressModal, getCreateCollectionSteps } from '@/components/TransactionProgressModal';
-import { checkSolBalance, estimateCollectionRent } from '@/lib/transactionUtils';
+import { checkSolBalance, estimateCollectionRent, createNftWalletFirst } from '@/lib/transactionUtils';
 import {
   COLLECTION_TYPES,
   COLLECTION_SCHEMAS,
@@ -165,14 +165,18 @@ export default function CreateCollectionPage() {
 
       setStatus('Creating collection on Solana — approve in your wallet...');
       setCollectionPhase('creating-onchain');
-      const createResult = await metaplex.nfts().create({
-        uri: metadataUrl,
-        name: formData.name,
-        symbol: formData.symbol,
-        sellerFeeBasisPoints: Math.round(formData.royaltyPercent * 100),
-        isCollection: true,
-      });
-      const collectionNft = createResult.nft;
+      const { mintAddress: collectionMintPk, signature: createSig } =
+        await createNftWalletFirst(
+          metaplex,
+          { publicKey: wallet.publicKey!, signTransaction: wallet.signTransaction! },
+          {
+            uri: metadataUrl,
+            name: formData.name,
+            symbol: formData.symbol,
+            sellerFeeBasisPoints: Math.round(formData.royaltyPercent * 100),
+            isCollection: true,
+          },
+        );
 
       setStatus('Confirming transaction on blockchain...');
       setCollectionPhase('confirming');
@@ -180,21 +184,21 @@ export default function CreateCollectionPage() {
       setStatus('Registering collection...');
       setCollectionPhase('registering');
       try {
-        const sig =
-          (createResult as any).response?.signature ??
-          (createResult as any).signature ??
-          '';
-        if (sig) {
+        if (createSig) {
           const network = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet';
           await registerLaunchpadCollection({
-            txSignature: typeof sig === 'string' ? sig : String(sig),
-            collectionMint: collectionNft.address.toBase58(),
+            txSignature: createSig,
+            collectionMint: collectionMintPk.toBase58(),
             network,
           });
         }
       } catch (e) {
         console.warn('Registry registration failed:', e);
       }
+
+      const collectionNft = await metaplex.nfts().findByMint({
+        mintAddress: collectionMintPk,
+      });
 
       setCollectionPhase('success');
       setStatus('');

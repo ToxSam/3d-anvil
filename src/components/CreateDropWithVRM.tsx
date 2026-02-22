@@ -30,7 +30,7 @@ import DateTimePicker from '@/components/DateTimePicker';
 import { ForgeNumberInput } from '@/components/ForgeNumberInput';
 import { TransactionConfirmModal, buildCreateDropTransaction } from '@/components/TransactionConfirmModal';
 import { TransactionProgressModal, getCreateDropSteps } from '@/components/TransactionProgressModal';
-import { checkSolBalance, estimateDropRent } from '@/lib/transactionUtils';
+import { checkSolBalance, estimateDropRent, createNftWalletFirst } from '@/lib/transactionUtils';
 
 const VRMViewer = dynamic(
   () => import('@/components/VRMViewer').then((mod) => mod.VRMViewer),
@@ -944,27 +944,27 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
               share: s.percent,
             }))
           : undefined;
-      const createResult = await metaplex.nfts().create({
-        uri: metadataUrl,
-        name: collectionName,
-        symbol: collectionSymbol || 'DROP',
-        sellerFeeBasisPoints: Math.round(royaltyPercent * 100),
-        isCollection: true,
-        ...(creatorsList ? { creators: creatorsList } : {}),
-      });
-      const collectionNft = createResult.nft;
+      const { mintAddress: collectionMintPk, signature: createSig } =
+        await createNftWalletFirst(
+          metaplex,
+          { publicKey: wallet.publicKey!, signTransaction: wallet.signTransaction! },
+          {
+            uri: metadataUrl,
+            name: collectionName,
+            symbol: collectionSymbol || 'DROP',
+            sellerFeeBasisPoints: Math.round(royaltyPercent * 100),
+            isCollection: true,
+            ...(creatorsList ? { creators: creatorsList } : {}),
+          },
+        );
 
       // Register in launchpad allowlist (non-blocking)
       try {
-        const sig =
-          (createResult as any).response?.signature ??
-          (createResult as any).signature ??
-          '';
-        if (sig) {
+        if (createSig) {
           const network = process.env.NEXT_PUBLIC_SOLANA_NETWORK || 'devnet';
           await registerLaunchpadCollection({
-            txSignature: typeof sig === 'string' ? sig : String(sig),
-            collectionMint: collectionNft.address.toBase58(),
+            txSignature: createSig,
+            collectionMint: collectionMintPk.toBase58(),
             network,
           });
         }
@@ -974,7 +974,7 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
 
       setDropPhase('confirming');
       setStatus('Waiting for collection to propagate across Solana nodes\u2026');
-      const collectionMintAddr = collectionNft.address.toString();
+      const collectionMintAddr = collectionMintPk.toString();
       await waitForAccount(umi, collectionMintAddr, 10, 2000);
 
       // ── Create Candy Machine linked to this collection ──────────────
@@ -1024,6 +1024,9 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
       } else {
         finalMetadataUrl = await uploadMetadataToArweave(metaplex, updatedMetadata);
       }
+      const collectionNft = await metaplex.nfts().findByMint({
+        mintAddress: collectionMintPk,
+      });
       await metaplex.nfts().update({
         nftOrSft: collectionNft,
         uri: finalMetadataUrl,
@@ -1031,7 +1034,7 @@ export function CreateDropWithVRM({ onCreatingChange, fullViewport }: Props) {
 
       setDropPhase('success');
       setStatus('');
-      setCreatedCollectionAddress(collectionNft.address.toString());
+      setCreatedCollectionAddress(collectionMintAddr);
       toast('Drop created with on-chain mint rules!', 'success');
     } catch (error) {
       console.error('Failed:', error);

@@ -1,7 +1,8 @@
 'use client';
 
-import { Connection, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import type { Umi, TransactionBuilder } from '@metaplex-foundation/umi';
+import { Connection, Transaction, LAMPORTS_PER_SOL, PublicKey, Keypair } from '@solana/web3.js';
+import type { Umi, TransactionBuilder, Signer as UmiSigner } from '@metaplex-foundation/umi';
+import type { Metaplex } from '@metaplex-foundation/js';
 import { SOLANA_RPC_URL } from './constants';
 
 // ── Rent cost estimates (SOL) ────────────────────────────────────────────────
@@ -165,22 +166,58 @@ export async function simulateUmiTransaction(
 }
 
 /**
- * Send-and-confirm a Umi builder with pre-simulation and a fresh blockhash.
+ * Send-and-confirm a Umi builder with pre-simulation, fresh blockhash,
+ * and wallet-first signing order (Phantom Lighthouse compatibility).
+ *
+ * Phantom's Lighthouse flags multi-signer transactions where additional
+ * keypairs sign before the connected wallet. We ensure the wallet (identity)
+ * signs first, then generated keypairs sign afterward.
  *
  * 1. Pre-simulates with `sigVerify: false` (catches errors before wallet popup)
  * 2. Fetches a fresh blockhash right before sending (minimises expiry window)
- * 3. Signs and sends via the normal Umi flow
- *
- * Use this as a drop-in replacement for `builder.sendAndConfirm(umi)`.
+ * 3. Signs wallet-first, then keypair signers
+ * 4. Sends and confirms
  */
 export async function sendWithSimulation(
   umi: Umi,
   builder: TransactionBuilder,
 ): Promise<void> {
   await simulateUmiTransaction(umi, builder);
-  await builder.sendAndConfirm(umi, {
-    send: { skipPreflight: true },
-    confirm: { commitment: 'confirmed' },
+
+  // Collect unique signers from builder items, wallet-first.
+  const identityKey = umi.identity.publicKey.toString();
+  const seen = new Set<string>();
+  const walletSigners: UmiSigner[] = [];
+  const keypairSigners: UmiSigner[] = [];
+
+  // Identity (wallet) always signs — it's the fee payer.
+  walletSigners.push(umi.identity);
+  seen.add(identityKey);
+
+  for (const item of builder.items) {
+    for (const s of item.signers) {
+      const key = s.publicKey.toString();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      keypairSigners.push(s);
+    }
+  }
+
+  const readyBuilder = await builder.setLatestBlockhash(umi);
+  let tx = readyBuilder.build(umi);
+
+  for (const s of walletSigners) {
+    tx = await s.signTransaction(tx);
+  }
+  for (const s of keypairSigners) {
+    tx = await s.signTransaction(tx);
+  }
+
+  const sig = await umi.rpc.sendTransaction(tx, { skipPreflight: true });
+  const confirmBlockhash = await umi.rpc.getLatestBlockhash({ commitment: 'confirmed' });
+  await umi.rpc.confirmTransaction(sig, {
+    strategy: { type: 'blockhash', ...confirmBlockhash },
+    commitment: 'confirmed',
   });
 }
 
@@ -206,6 +243,57 @@ export async function prepareAndSimulateRawTransaction(
   await simulateRawTransaction(connection, transaction);
 
   return { blockhash, lastValidBlockHeight };
+}
+
+// ── Metaplex JS SDK wallet-first create ───────────────────────────────────────
+
+/**
+ * Create an NFT via the Metaplex JS SDK with wallet-first signing order.
+ *
+ * `metaplex.nfts().create()` internally generates a mint keypair and signs
+ * it before the wallet, triggering Phantom Lighthouse warnings. This helper
+ * uses the builder pattern to control signing order: wallet signs first,
+ * then the generated mint keypair signs afterward.
+ *
+ * Returns the new mint address and the transaction signature.
+ */
+export async function createNftWalletFirst(
+  metaplex: Metaplex,
+  wallet: { publicKey: PublicKey; signTransaction: (tx: Transaction) => Promise<Transaction> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  createParams: any,
+): Promise<{ mintAddress: PublicKey; signature: string }> {
+  const builder = await metaplex.nfts().builders().create(createParams);
+
+  const connection = metaplex.connection;
+  const { blockhash, lastValidBlockHeight } =
+    await connection.getLatestBlockhash('confirmed');
+
+  const tx = builder.toTransaction({ blockhash, lastValidBlockHeight });
+  tx.feePayer = wallet.publicKey;
+
+  await simulateRawTransaction(connection, tx);
+
+  // Wallet (Phantom) signs FIRST
+  const signedTx = await wallet.signTransaction(tx);
+
+  // Additional keypairs (mint account, etc.) sign after
+  const signers = builder.getSigners();
+  for (const signer of signers) {
+    if ('secretKey' in signer && !signer.publicKey.equals(wallet.publicKey)) {
+      signedTx.partialSign(signer as Keypair);
+    }
+  }
+
+  const sig = await connection.sendRawTransaction(signedTx.serialize(), {
+    skipPreflight: true,
+  });
+  await connection.confirmTransaction(
+    { signature: sig, blockhash, lastValidBlockHeight },
+    'confirmed',
+  );
+
+  return { mintAddress: builder.getContext().mintAddress, signature: sig };
 }
 
 // ── Balance pre-flight check ─────────────────────────────────────────────────

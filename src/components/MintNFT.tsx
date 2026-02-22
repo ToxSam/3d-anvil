@@ -26,7 +26,7 @@ import { ForgeNumberInput } from '@/components/ForgeNumberInput';
 import { TransactionConfirmModal, buildMintNftTransaction } from '@/components/TransactionConfirmModal';
 import { TransactionProgressModal, getMintNftSteps } from '@/components/TransactionProgressModal';
 import { parseSolanaError } from '@/lib/solanaErrors';
-import { checkSolBalance, estimateMintRent } from '@/lib/transactionUtils';
+import { checkSolBalance, estimateMintRent, createNftWalletFirst } from '@/lib/transactionUtils';
 
 const VRMViewer = dynamic(
   () => import('@/components/VRMViewer').then((mod) => mod.VRMViewer),
@@ -647,13 +647,17 @@ export function MintNFT({ collectionAddress, collectionName, collectionSymbol, o
 
         setMintPhase('minting');
         setStatus(`Creating NFT on Solana${editionLabel}\u2026 Approve in Phantom.`);
-        const { nft } = await metaplex.nfts().create({
-          uri: metadataUrl,
-          name: editionName,
-          symbol: nftSymbol,
-          sellerFeeBasisPoints: royaltyBps,
-          collection: new PublicKey(collectionAddress),
-        });
+        const { mintAddress: nftMintAddress } = await createNftWalletFirst(
+          metaplex,
+          { publicKey: wallet.publicKey!, signTransaction: wallet.signTransaction! },
+          {
+            uri: metadataUrl,
+            name: editionName,
+            symbol: nftSymbol,
+            sellerFeeBasisPoints: royaltyBps,
+            collection: new PublicKey(collectionAddress),
+          },
+        );
 
         // ── Phase 6: Confirm on-chain ──
         setMintPhase('confirming');
@@ -667,7 +671,7 @@ export function MintNFT({ collectionAddress, collectionName, collectionSymbol, o
         for (let attempt = 0; attempt < 2; attempt++) {
           try {
             await metaplex.nfts().verifyCollection({
-              mintAddress: nft.address,
+              mintAddress: nftMintAddress,
               collectionMintAddress: new PublicKey(collectionAddress),
             });
             verifyFailed = false;
@@ -679,7 +683,7 @@ export function MintNFT({ collectionAddress, collectionName, collectionSymbol, o
           }
         }
 
-        mintedAddresses.push(nft.address.toString());
+        mintedAddresses.push(nftMintAddress.toString());
         if (verifyFailed) anyVerifyFailed = true;
       }
 

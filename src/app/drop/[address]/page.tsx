@@ -8,7 +8,7 @@ import { useMetaplex } from '@/lib/metaplex';
 import { useUmi } from '@/lib/umi';
 import { mintFromCandyMachine, updateDropGuards, fetchCandyMachineState, fetchPhasesFromCandyMachine, fetchDutchAuctionConfigFromCandyMachine, getCurrentDutchAuctionStepPrice, DUTCH_AUCTION_STEPS, type CandyMachineState } from '@/lib/candyMachine';
 import { PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { prepareAndSimulateRawTransaction } from '@/lib/transactionUtils';
+import { prepareAndSimulateRawTransaction, createNftWalletFirst } from '@/lib/transactionUtils';
 import { ShareButtons } from '@/components/ShareButtons';
 import { SolanaIcon } from '@/components/SolanaIcon';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
@@ -1128,18 +1128,22 @@ export default function DropPage() {
       }
 
       setMintPhase('minting');
-      const { nft } = await metaplex.nfts().create({
-        uri: collection.uri,
-        name: `${collection.name} #${stats.minted + 1}`,
-        symbol: collection.symbol || '',
-        sellerFeeBasisPoints: collection.sellerFeeBasisPoints || 500,
-        collection: new PublicKey(address),
-      });
+      const { mintAddress: nftMintAddress } = await createNftWalletFirst(
+        metaplex,
+        { publicKey: wallet.publicKey!, signTransaction: wallet.signTransaction! },
+        {
+          uri: collection.uri,
+          name: `${collection.name} #${stats.minted + 1}`,
+          symbol: collection.symbol || '',
+          sellerFeeBasisPoints: collection.sellerFeeBasisPoints || 500,
+          collection: new PublicKey(address),
+        },
+      );
 
       setMintPhase('verifying');
       try {
         await metaplex.nfts().verifyCollection({
-          mintAddress: nft.address,
+          mintAddress: nftMintAddress,
           collectionMintAddress: new PublicKey(address),
         });
       } catch (verifyErr) {
@@ -1148,7 +1152,7 @@ export default function DropPage() {
 
       setMintPhase('success');
       toast('NFT minted successfully!', 'success');
-      setLastMintedAddress(nft.address.toString());
+      setLastMintedAddress(nftMintAddress.toString());
       await loadCollectionData();
     } catch (error) {
       console.error('Mint failed:', error);
