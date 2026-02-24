@@ -36,8 +36,9 @@ export default function CreateDropPage() {
   // Show full-viewport drop creation page
   return (
     <div className="fixed inset-0 top-16 md:top-20 overflow-hidden flex flex-col">
-      <ForgePageWrapper embers={16} forging={forging} noScroll>
-        <div className="flex flex-col h-full min-h-0 overflow-hidden">
+      <div className="flex-1 min-h-0 flex flex-col w-full">
+        <ForgePageWrapper embers={16} forging={forging} noScroll>
+          <div className="flex flex-col h-full min-h-0 overflow-hidden">
         {/* Header bar with back link */}
         <div className="flex-shrink-0 border-b border-gray-300/30 dark:border-gray-700/30 bg-[var(--background)]/90 backdrop-blur-sm relative z-10">
           <div className="container-custom py-4 flex items-center justify-between">
@@ -63,7 +64,8 @@ export default function CreateDropPage() {
           />
         </div>
       </div>
-    </ForgePageWrapper>
+        </ForgePageWrapper>
+      </div>
     </div>
   );
 }

@@ -1498,6 +1498,7 @@ body {
 .page-inner-forge--no-scroll {
   height: 100%;
   min-height: 0;
+  flex: 1 1 0;
 }
 
 /* Extend forge background to cover viewport top when noScroll (fixes loading cut-out) */
