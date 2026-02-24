@@ -174,15 +174,29 @@ export default function CreatorPage() {
         .catch(() => null);
 
       if (balancesResult !== null) {
-        const items: NFTItem[] = (balancesResult.items ?? []).map((item: any) => ({
-          address: item.id,
-          name: item.content?.metadata?.name || 'Unnamed',
-          description: item.content?.metadata?.description,
-          image: resolveArweaveUrl(item.content?.links?.image),
-          animationUrl: resolveArweaveUrl(get3DModelUrl(item)),
-          createdAt: 0,
-        }));
-        setInventory(items);
+        const rawItems = balancesResult.items ?? [];
+        const itemResults = await Promise.allSettled(
+          rawItems.map(async (item: any) => {
+            let image = resolveArweaveUrl(item.content?.links?.image);
+            if (!image && item.content?.json_uri) {
+              const json = await tryFetchJsonWithIrysGateway(item.content.json_uri);
+              if (json) image = resolveArweaveUrl(json.image);
+            }
+            return {
+              address: item.id,
+              name: item.content?.metadata?.name || 'Unnamed',
+              description: item.content?.metadata?.description,
+              image,
+              animationUrl: resolveArweaveUrl(get3DModelUrl(item)),
+              createdAt: 0,
+            } as NFTItem;
+          }),
+        );
+        setInventory(
+          itemResults
+            .filter((r): r is PromiseFulfilledResult<NFTItem> => r.status === 'fulfilled')
+            .map((r) => r.value),
+        );
         return;
       }
 
@@ -235,10 +249,10 @@ export default function CreatorPage() {
     try {
       const creatorKey = new PublicKey(address);
 
-      // Parallel: DAS (full metadata for all creator assets) + Metaplex (collectionDetails only)
+      // Parallel: DAS (assets by creator for display) + Metaplex by OWNER (collection/drop NFTs this address owns, like dashboard)
       const [dasResult, metaplexNfts] = await Promise.all([
         getAssetsByCreator(address, 1, 500),
-        metaplex.nfts().findAllByCreator({ creator: creatorKey, position: 0 }),
+        metaplex.nfts().findAllByOwner({ owner: creatorKey }),
       ]);
 
       const dasMap = new Map<string, DASAsset>();
