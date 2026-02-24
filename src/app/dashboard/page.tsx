@@ -8,8 +8,9 @@ import { NFTCard } from '@/components/NFTCard';
 import { WalletButton } from '@/components/WalletButton';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
 import Link from 'next/link';
-import { EXPLORER_URL, SOLANA_NETWORK, isDropCollection, is3DAnvilAsset, isLocalhostUrl, tryFetchJsonWithIrysGateway, resolveArweaveUrl } from '@/lib/constants';
+import { EXPLORER_URL, SOLANA_NETWORK, isDropCollection, is3DAnvilAsset, isLocalhostUrl, tryFetchJsonWithIrysGateway, resolveArweaveUrl, BETA_SUPPORTER_COLLECTION_MINT } from '@/lib/constants';
 import { getAssetsByOwnerSorted, DASAsset } from '@/lib/das';
+import { BetaBadge } from '@/components/BetaBadge';
 
 const PAGE_SIZE = 20;
 
@@ -161,6 +162,7 @@ export default function DashboardPage() {
   const [inventoryPage, setInventoryPage] = useState(0);
   const [collectionsPage, setCollectionsPage] = useState(0);
   const [dropsPage, setDropsPage] = useState(0);
+  const [hasBetaSupporter, setHasBetaSupporter] = useState(false);
 
   function sortItems<T extends { createdAt: number; name: string }>(
     items: T[],
@@ -222,6 +224,12 @@ export default function DashboardPage() {
         for (let i = 0; i < total; i++) {
           creationOrderMap.set(dasResult.items[i].id, total - i);
         }
+        const hasBeta = dasResult.items.some((a) =>
+          a.grouping?.some((g) => g.group_key === 'collection' && g.group_value === BETA_SUPPORTER_COLLECTION_MINT),
+        );
+        setHasBetaSupporter(hasBeta);
+      } else {
+        setHasBetaSupporter(false);
       }
 
       // Identify collection NFTs from Metaplex (collectionDetails only comes from Metaplex)
@@ -482,6 +490,11 @@ export default function DashboardPage() {
                     </svg>
                   </a>
                 </div>
+                {hasBetaSupporter && (
+                  <div className="mt-3">
+                    <BetaBadge showLabel />
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}

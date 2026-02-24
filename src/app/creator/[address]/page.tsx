@@ -9,8 +9,9 @@ import { NFTCard } from '@/components/NFTCard';
 import { ShareButtons } from '@/components/ShareButtons';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
 import { SkeletonGrid, StatSkeleton } from '@/components/Skeleton';
-import { EXPLORER_URL, SOLANA_NETWORK, resolveArweaveUrl, tryFetchJsonWithIrysGateway, is3DAnvilAsset } from '@/lib/constants';
-import { getAssetsByCreator, getAssetsByOwner, DASAsset } from '@/lib/das';
+import { EXPLORER_URL, SOLANA_NETWORK, resolveArweaveUrl, tryFetchJsonWithIrysGateway, is3DAnvilAsset, isDropCollection, isLocalhostUrl } from '@/lib/constants';
+import { getAssetsByCreator, getAssetsByOwner, DASAsset, ownerHasBetaSupporterNft } from '@/lib/das';
+import { BetaBadge } from '@/components/BetaBadge';
 
 const PAGE_SIZE = 20;
 
@@ -115,6 +116,8 @@ interface CollectionItem {
   description?: string;
   image?: string;
   itemCount: number;
+  isDrop: boolean;
+  mintConfig?: any;
   createdAt: number;
 }
 
@@ -134,19 +137,23 @@ export default function CreatorPage() {
   const metaplex = useMetaplex();
 
   const [collections, setCollections] = useState<CollectionItem[]>([]);
+  const [drops, setDrops] = useState<CollectionItem[]>([]);
   const [nfts, setNfts] = useState<NFTItem[]>([]);
   const [inventory, setInventory] = useState<NFTItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [inventoryLoading, setInventoryLoading] = useState(true);
   const [topTab, setTopTab] = useState<'inventory' | 'forged'>('inventory');
-  const [forgedTab, setForgedTab] = useState<'collections' | 'creations'>('collections');
+  const [forgedTab, setForgedTab] = useState<'collections' | 'drops' | 'creations'>('collections');
   const [inventorySort, setInventorySort] = useState<SortOption>('newest');
   const [forgedSort, setForgedSort] = useState<SortOption>('newest');
   const [inventoryPage, setInventoryPage] = useState(0);
   const [collectionsPage, setCollectionsPage] = useState(0);
+  const [dropsPage, setDropsPage] = useState(0);
   const [creationsPage, setCreationsPage] = useState(0);
+  const [hasBetaSupporter, setHasBetaSupporter] = useState(false);
   const [, setStats] = useState({
     totalCollections: 0,
+    totalDrops: 0,
     totalCreations: 0,
     totalAssets: 0,
   });
@@ -226,79 +233,122 @@ export default function CreatorPage() {
     setLoading(true);
 
     try {
-      // Try DAS API first (fast, no wallet needed)
-      const dasResult = await getAssetsByCreator(address);
-      if (dasResult && dasResult.items.length > 0) {
-        processAssets(dasResult.items);
-        return;
+      const creatorKey = new PublicKey(address);
+
+      // Parallel: DAS (full metadata for all creator assets) + Metaplex (collectionDetails only)
+      const [dasResult, metaplexNfts] = await Promise.all([
+        getAssetsByCreator(address, 1, 500),
+        metaplex.nfts().findAllByCreator({ creator: creatorKey, position: 0 }),
+      ]);
+
+      const dasMap = new Map<string, DASAsset>();
+      if (dasResult?.items) {
+        for (const asset of dasResult.items) dasMap.set(asset.id, asset);
       }
 
-      // Fallback: use Metaplex SDK
-      const creatorKey = new PublicKey(address);
-      const allNfts = await metaplex.nfts().findAllByCreator({
-        creator: creatorKey,
-        position: 0,
-      });
-
-      // Load full data
-      const loaded = await Promise.allSettled(
-        allNfts.map(async (nft: any) => {
-          try {
-            return await metaplex.nfts().load({ metadata: nft });
-          } catch {
-            try {
-              return await metaplex.nfts().load({ metadata: nft, loadJsonMetadata: false });
-            } catch {
-              return nft;
-            }
-          }
-        }),
-      );
-
-      const resolved = loaded
-        .filter((r): r is PromiseFulfilledResult<any> => r.status === 'fulfilled')
-        .map((r) => r.value);
-
-      // Separate collections from items, filtering to 3D Anvil assets only
-      const collectionList: CollectionItem[] = [];
-      const nftList: NFTItem[] = [];
-
-      for (const nft of resolved) {
-        const isCollection = nft.collectionDetails != null;
-        if (isCollection) {
-          if (!is3DAnvilAsset(nft.json)) continue;
-          collectionList.push({
-            address: (nft.mintAddress || nft.address).toString(),
+      // From Metaplex: find collection NFTs (collectionDetails != null), fetch JSON in parallel (no load() in loop)
+      const collectionInfoList: { addr: string; uri: string; name: string; symbol: string; size: number }[] = [];
+      for (const nft of metaplexNfts as any[]) {
+        const addr = (nft.mintAddress || nft.address).toString();
+        const uri = nft.uri as string | undefined;
+        if (uri && isLocalhostUrl(uri)) continue;
+        if (nft.collectionDetails != null) {
+          collectionInfoList.push({
+            addr,
+            uri: uri || '',
             name: nft.name || 'Unnamed Collection',
             symbol: nft.symbol || '',
-            description: nft.json?.description,
-            image: resolveArweaveUrl(nft.json?.image),
-            itemCount: nft.collectionDetails?.size ? Number(nft.collectionDetails.size) : 0,
-            createdAt: 0,
-          });
-        } else {
-          const has3DModel = nft.json?.properties?.files?.some(
-            (f: any) => f.type?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
-          );
-          if (!has3DModel) continue;
-          nftList.push({
-            address: (nft.mintAddress || nft.address).toString(),
-            name: nft.name || 'Unnamed',
-            description: nft.json?.description,
-            image: resolveArweaveUrl(nft.json?.image),
-            animationUrl: resolveArweaveUrl(nft.json?.animation_url),
-            attributes: nft.json?.attributes,
-            createdAt: 0,
+            size: nft.collectionDetails?.size ? Number(nft.collectionDetails.size) : 0,
           });
         }
       }
 
+      const jsonResults = await Promise.allSettled(
+        collectionInfoList.map(async (info) => {
+          const dasAsset = dasMap.get(info.addr);
+          const uri = dasAsset?.content?.json_uri || info.uri;
+          let json: any = {};
+          if (uri && !isLocalhostUrl(uri)) {
+            json = (await tryFetchJsonWithIrysGateway(uri)) || {};
+          }
+          return { info, dasAsset, json };
+        }),
+      );
+
+      const collectionList: CollectionItem[] = [];
+      const dropList: CollectionItem[] = [];
+      const collectionDropMintSet = new Set<string>();
+
+      for (const result of jsonResults) {
+        if (result.status !== 'fulfilled') continue;
+        const { info, dasAsset, json } = result.value;
+        if (!is3DAnvilAsset(json)) continue;
+
+        const isDrop = isDropCollection(json);
+        collectionDropMintSet.add(info.addr);
+        const item: CollectionItem = {
+          address: info.addr,
+          name: (dasAsset?.content?.metadata?.name as string) || info.name || 'Unnamed Collection',
+          symbol: (dasAsset?.content?.metadata?.symbol as string) || info.symbol || '',
+          description: json.description ?? (dasAsset?.content?.metadata?.description as string),
+          image: resolveArweaveUrl(json.image ?? dasAsset?.content?.links?.image),
+          itemCount: info.size,
+          isDrop,
+          mintConfig: isDrop ? json.mint_config : undefined,
+          createdAt: 0,
+        };
+        if (isDrop) dropList.push(item);
+        else collectionList.push(item);
+      }
+
+      // Creations: DAS assets that are NOT collection/drop mints, with 3D model (same display logic as dashboard)
+      const get3DModelUrl = (asset: DASAsset): string | undefined =>
+        asset.content?.links?.animation_url ||
+        asset.content?.files?.find(
+          (f) => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
+        )?.uri;
+
+      const has3DModelFile = (asset: DASAsset): boolean =>
+        !!(asset.content?.files?.some(
+          (f) => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
+        ));
+
+      const creationItems = (dasResult?.items ?? []).filter(
+        (asset) => !collectionDropMintSet.has(asset.id) && has3DModelFile(asset),
+      );
+
+      const nftResults = await Promise.allSettled(
+        creationItems.map(async (asset) => {
+          let image = resolveArweaveUrl(asset.content?.links?.image);
+          if (!image && asset.content?.json_uri) {
+            const json = await tryFetchJsonWithIrysGateway(asset.content.json_uri);
+            if (json) image = resolveArweaveUrl(json.image);
+          }
+          const animationUrl = resolveArweaveUrl(get3DModelUrl(asset));
+          return {
+            address: asset.id,
+            name: asset.content?.metadata?.name || 'Unnamed',
+            description: asset.content?.metadata?.description,
+            image,
+            animationUrl,
+            attributes: asset.content?.metadata?.attributes as NFTItem['attributes'],
+            createdAt: 0,
+          } as NFTItem;
+        }),
+      );
+
+      const nftList: NFTItem[] = nftResults
+        .filter((r): r is PromiseFulfilledResult<NFTItem> => r.status === 'fulfilled')
+        .map((r) => r.value);
+
       setCollections(collectionList);
+      setDrops(dropList);
       setNfts(nftList);
       setStats({
         totalCollections: collectionList.length,
+        totalDrops: dropList.length,
         totalCreations: nftList.length,
-        totalAssets: collectionList.length + nftList.length,
+        totalAssets: collectionList.length + dropList.length + nftList.length,
       });
     } catch (error) {
       console.error('Failed to load creator data:', error);
@@ -306,40 +356,6 @@ export default function CreatorPage() {
       setLoading(false);
     }
   }, [address, metaplex]);
-
-  function processAssets(items: DASAsset[]) {
-    const nftList: NFTItem[] = [];
-
-    for (const item of items) {
-      // Strict: only include items with actual 3D model files in content.files
-      const has3DModel = item.content?.files?.some(
-        f => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
-      );
-      if (!has3DModel) continue;
-
-      const modelUrl =
-        item.content?.links?.animation_url ||
-        item.content?.files?.find(
-          f => f.mime?.startsWith('model/') || /\.(vrm|glb|gltf)$/i.test(f.uri ?? ''),
-        )?.uri;
-
-      nftList.push({
-        address: item.id,
-        name: item.content?.metadata?.name || 'Unnamed',
-        description: item.content?.metadata?.description,
-        image: resolveArweaveUrl(item.content?.links?.image),
-        animationUrl: resolveArweaveUrl(modelUrl),
-        createdAt: 0,
-      });
-    }
-
-    setNfts(nftList);
-    setStats({
-      totalCollections: 0,
-      totalCreations: nftList.length,
-      totalAssets: nftList.length,
-    });
-  }
 
   function sortItems<T extends { createdAt: number; name: string }>(
     items: T[],
@@ -357,20 +373,32 @@ export default function CreatorPage() {
 
   const sortedInventory = useMemo(() => sortItems(inventory, inventorySort), [inventory, inventorySort]);
   const sortedCollections = useMemo(() => sortItems(collections, forgedSort, (c) => c.itemCount), [collections, forgedSort]);
+  const sortedDrops = useMemo(() => sortItems(drops, forgedSort, (d) => d.itemCount), [drops, forgedSort]);
   const sortedCreations = useMemo(() => sortItems(nfts, forgedSort), [nfts, forgedSort]);
 
   const inventoryPages = Math.max(1, Math.ceil(inventory.length / PAGE_SIZE));
   const collectionsPages = Math.max(1, Math.ceil(collections.length / PAGE_SIZE));
+  const dropsPages = Math.max(1, Math.ceil(drops.length / PAGE_SIZE));
   const creationsPages = Math.max(1, Math.ceil(nfts.length / PAGE_SIZE));
 
   const pagedInventory = sortedInventory.slice(inventoryPage * PAGE_SIZE, (inventoryPage + 1) * PAGE_SIZE);
   const pagedCollections = sortedCollections.slice(collectionsPage * PAGE_SIZE, (collectionsPage + 1) * PAGE_SIZE);
+  const pagedDrops = sortedDrops.slice(dropsPage * PAGE_SIZE, (dropsPage + 1) * PAGE_SIZE);
   const pagedCreations = sortedCreations.slice(creationsPage * PAGE_SIZE, (creationsPage + 1) * PAGE_SIZE);
 
   useEffect(() => {
     loadCreatorData();
     loadInventory();
   }, [loadCreatorData, loadInventory]);
+
+  useEffect(() => {
+    if (!address) return;
+    let cancelled = false;
+    ownerHasBetaSupporterNft(address).then((has) => {
+      if (!cancelled) setHasBetaSupporter(has);
+    });
+    return () => { cancelled = true; };
+  }, [address]);
 
   const shortAddr = address
     ? `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -396,9 +424,12 @@ export default function CreatorPage() {
                   </div>
                   <div>
                     <span className="text-caption uppercase tracking-widest text-orange-400/70 font-mono block mb-1">Creator Profile</span>
-                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight font-mono">
-                      {shortAddr}
-                    </h1>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <h1 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100 tracking-tight font-mono">
+                        {shortAddr}
+                      </h1>
+                      {hasBetaSupporter && <BetaBadge size="sm" />}
+                    </div>
                   </div>
                 </div>
                 
@@ -470,12 +501,12 @@ export default function CreatorPage() {
                 <div className="stat-forge group cursor-default">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-caption text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Creations</p>
-                      <p className="text-2xl font-bold font-mono text-orange-400">{nfts.length}</p>
+                      <p className="text-caption text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Drops</p>
+                      <p className="text-2xl font-bold font-mono text-orange-400">{drops.length}</p>
                     </div>
                     <div className="w-10 h-10 rounded-full bg-orange-400/10 flex items-center justify-center group-hover:bg-orange-400/20 transition-colors">
                       <svg className="w-5 h-5 text-orange-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
                       </svg>
                     </div>
                   </div>
@@ -515,8 +546,8 @@ export default function CreatorPage() {
               </svg>
             </span>
             Forged
-            {(collections.length + nfts.length) > 0 && (
-              <span className="ml-0.5 text-caption font-mono opacity-60">({collections.length + nfts.length})</span>
+            {(collections.length + drops.length + nfts.length) > 0 && (
+              <span className="ml-0.5 text-caption font-mono opacity-60">({collections.length + drops.length + nfts.length})</span>
             )}
           </button>
         </div>
@@ -572,7 +603,7 @@ export default function CreatorPage() {
         ) : (
           // ── Forged Tab ───────────────────────────────────────────────
           <div>
-            {/* Forged sub-tabs: Collections / DROPS Creations */}
+            {/* Forged sub-tabs: Collections / Drops / Creations */}
             <div className="flex gap-0 border-b border-gray-200/30 dark:border-gray-700/20 mb-6">
               <button
                 onClick={() => setForgedTab('collections')}
@@ -583,19 +614,27 @@ export default function CreatorPage() {
                 Collections ({collections.length})
               </button>
               <button
+                onClick={() => setForgedTab('drops')}
+                className={`tab-forge !py-2.5 !px-4 text-small ${
+                  forgedTab === 'drops' ? 'tab-forge-active' : 'tab-forge-inactive'
+                }`}
+              >
+                Drops ({drops.length})
+              </button>
+              <button
                 onClick={() => setForgedTab('creations')}
                 className={`tab-forge !py-2.5 !px-4 text-small ${
                   forgedTab === 'creations' ? 'tab-forge-active' : 'tab-forge-inactive'
                 }`}
               >
-                DROPS Creations ({nfts.length})
+                Creations ({nfts.length})
               </button>
             </div>
 
             {loading ? (
               <SkeletonGrid
                 count={6}
-                type={forgedTab === 'collections' ? 'collection' : 'nft'}
+                type={forgedTab === 'creations' ? 'nft' : 'collection'}
               />
             ) : forgedTab === 'collections' ? (
               collections.length === 0 ? (
@@ -634,6 +673,51 @@ export default function CreatorPage() {
                           description={col.description}
                           image={col.image}
                           itemCount={col.itemCount}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            ) : forgedTab === 'drops' ? (
+              drops.length === 0 ? (
+                <div className="text-center py-20">
+                  <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-orange-100 to-orange-200 dark:from-orange-900/20 dark:to-orange-800/20 mb-6 animate-fade-in">
+                    <svg className="w-10 h-10 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-2 animate-slide-up">
+                    No drops found
+                  </h3>
+                  <p className="text-body text-gray-500 dark:text-gray-400 max-w-md mx-auto animate-slide-up animation-delay-100">
+                    This creator hasn&apos;t launched any drops yet.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <SortBar
+                    value={forgedSort}
+                    onChange={(v) => setForgedSort(v as SortOption)}
+                    totalCount={drops.length}
+                    label="drops"
+                    showItems
+                    page={dropsPage}
+                    totalPages={dropsPages}
+                    onPageChange={setDropsPage}
+                  />
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {pagedDrops.map((drop, idx) => (
+                      <div key={drop.address} className="animate-fade-in" style={{animationDelay: `${idx * 50}ms`}}>
+                        <CollectionCard
+                          address={drop.address}
+                          name={drop.name}
+                          symbol={drop.symbol}
+                          description={drop.description}
+                          image={drop.image}
+                          itemCount={drop.itemCount}
+                          isDrop
+                          mintConfig={drop.mintConfig}
                         />
                       </div>
                     ))}

@@ -8,7 +8,7 @@
  * browser.
  */
 
-import { SOLANA_RPC_URL } from './constants';
+import { SOLANA_RPC_URL, BETA_SUPPORTER_COLLECTION_MINT } from './constants';
 import { cachedFetch } from './cache';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -345,5 +345,20 @@ export async function getCollectionHolders(collectionMint: string): Promise<Hold
         .sort((a, b) => b.count - a.count);
     },
     120,
+  );
+}
+
+/**
+ * Returns true if the given wallet owns at least one NFT from the Beta Supporter collection.
+ * Used for dashboard and creator Beta Badge. Cached 60s per owner.
+ */
+export async function ownerHasBetaSupporterNft(ownerAddress: string): Promise<boolean> {
+  const result = await getAssetsByOwner(ownerAddress, 1, 1000);
+  if (!result?.items?.length) return false;
+  return result.items.some(
+    (asset) =>
+      asset.grouping?.some(
+        (g) => g.group_key === 'collection' && g.group_value === BETA_SUPPORTER_COLLECTION_MINT,
+      ),
   );
 }

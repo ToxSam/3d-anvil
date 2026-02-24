@@ -6,10 +6,9 @@ import Link from 'next/link';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
 import { ForgeWord } from '@/components/ForgeWord';
 import { getAsset } from '@/lib/das';
-import { resolveArweaveUrl, tryFetchJsonWithIrysGateway } from '@/lib/constants';
+import { resolveArweaveUrl, tryFetchJsonWithIrysGateway, BETA_SUPPORTER_COLLECTION_MINT } from '@/lib/constants';
 
-const BETA_DROP_ADDRESS = '2xFPp6YsvzRJHR1YZmgbiSWgM6cge82xTCDpqKNrKtJa';
-const MINT_BETA_SUPPORTER_URL = `/drop/${BETA_DROP_ADDRESS}`;
+const MINT_BETA_SUPPORTER_URL = `/drop/${BETA_SUPPORTER_COLLECTION_MINT}`;
 
 const CardAnvilModel = dynamic(
   () => import('@/components/CardAnvilModel').then((mod) => mod.CardAnvilModel),
@@ -39,7 +38,7 @@ function SupportMintCard({ isSticky = true }: { isSticky?: boolean }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const asset = await getAsset(BETA_DROP_ADDRESS);
+      const asset = await getAsset(BETA_SUPPORTER_COLLECTION_MINT);
       if (cancelled || !asset?.content) return;
       const c = asset.content;
       // Name: prefer DAS metadata, fallback to JSON (some RPCs don't populate metadata.name for collection NFTs)

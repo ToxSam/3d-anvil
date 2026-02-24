@@ -185,3 +185,6 @@ export const IRYS_NODE =
   process.env.NEXT_PUBLIC_IRYS_NODE || 'https://devnet.irys.xyz';
 export const EXPLORER_URL =
   process.env.NEXT_PUBLIC_EXPLORER_URL || 'https://explorer.solana.com';
+
+/** Collection/drop mint for the Beta Supporter Edition (support page + badge). */
+export const BETA_SUPPORTER_COLLECTION_MINT = '2xFPp6YsvzRJHR1YZmgbiSWgM6cge82xTCDpqKNrKtJa';
