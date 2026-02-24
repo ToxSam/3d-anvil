@@ -144,6 +144,7 @@ src/
 |-------|-------------|
 | `/` | Homepage |
 | `/about` | About page |
+| `/support` | Support — fund the project, Beta Supporter mint |
 | `/create` | Create hub |
 | `/create-collection` | New collection (fires registry on success) |
 | `/create-drop` | New drop with VRM/GLB upload |

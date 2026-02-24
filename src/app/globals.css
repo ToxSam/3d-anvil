@@ -933,6 +933,31 @@ body {
 .card-forge .card-spark-bl { bottom: 12px; left: 12px; animation-delay: 0.4s; }
 .card-forge .card-spark-br { bottom: 12px; right: 12px; animation-delay: 0.3s; }
 
+/* Support card: orange border + 4 corner dots + glow always active (no hover) */
+.card-forge-support {
+  box-shadow: 0 0 32px rgba(251, 146, 60, 0.18), 0 0 64px rgba(245, 158, 11, 0.08);
+}
+.card-forge-support::before {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.7), rgba(245, 158, 11, 0.6), rgba(251, 146, 60, 0.7));
+  opacity: 1;
+  animation: card-forge-heat 1.8s ease-in-out infinite;
+}
+.dark .card-forge-support::before {
+  background: linear-gradient(135deg, rgba(251, 146, 60, 0.75), rgba(245, 158, 11, 0.65), rgba(251, 146, 60, 0.75));
+}
+.card-forge-support::after {
+  opacity: 1;
+  animation: card-forge-heat-glow 1.8s ease-in-out infinite;
+}
+.card-forge-support .card-spark {
+  opacity: 1;
+  animation: card-spark-pulse 1.5s ease-in-out infinite;
+}
+.card-forge-support:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 40px rgba(251, 146, 60, 0.22), 0 0 80px rgba(245, 158, 11, 0.1);
+}
+
 @keyframes card-spark-pulse {
   0%, 100% { opacity: 0.4; transform: scale(0.8); }
   50% { opacity: 1; transform: scale(1.2); }

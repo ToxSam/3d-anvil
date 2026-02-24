@@ -296,7 +296,7 @@ export default function Home() {
             <span className="card-spark card-spark-bl" aria-hidden />
             <span className="card-spark card-spark-br" aria-hidden />
             <div className="relative z-10 flex flex-row items-center gap-6 flex-1 min-w-0">
-              <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center bg-orange-400/10 text-orange-400 rounded-xl [&_svg]:w-10 [&_svg]:h-10">
+              <div className="w-14 h-14 flex-shrink-0 flex items-center justify-center bg-orange-400/10 text-orange-400 rounded-xl [&_svg]:w-15 [&_svg]:h-15">
                 <svg fill="currentColor" viewBox="0 0 490.002 490.002" xmlns="http://www.w3.org/2000/svg" aria-hidden>
                   <g>
                     <path d="M138.447,111.457c28.471,28.347,66.324,43.958,106.579,43.958c40.245,0,78.098-15.611,106.57-43.958l26.627-26.518c2.13-1.766,5.655-8.603,0-14.465l-26.627-26.512c-28.472-28.348-66.324-43.959-106.57-43.959c-40.256,0-78.108,15.611-106.579,43.959l-26.627,26.512c-5.592,6.236-1.924,12.551,0,14.465L138.447,111.457z M152.862,58.427c24.613-24.509,57.342-38.008,92.164-38.008c34.812,0,67.54,13.499,92.154,38.008l19.37,19.279l-19.37,19.286c-24.613,24.509-57.341,38.007-92.154,38.007c-34.822,0-67.551-13.498-92.164-38.007l-19.37-19.286L152.862,58.427z"/>

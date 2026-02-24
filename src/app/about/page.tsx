@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ForgePageWrapper } from '@/components/ForgePageWrapper';
+import { ForgeWord } from '@/components/ForgeWord';
 import { SolanaIcon } from '@/components/SolanaIcon';
 
 const SECTIONS = [
@@ -12,6 +13,7 @@ const SECTIONS = [
   { id: 'technology', label: 'Technology' },
   { id: 'formats', label: 'Supported Formats' },
   { id: 'open-source', label: 'Open Source' },
+  { id: 'support', label: 'Support the Project' },
   { id: 'who-behind', label: "Who's Behind" },
   { id: 'developers', label: 'For Developers' },
   { id: 'expect', label: 'What to Expect' },
@@ -57,6 +59,14 @@ const FAQ_ITEMS: FaqItem[] = [
   {
     q: 'Are there platform fees?',
     a: 'No. 3D Anvil charges zero platform fees and takes no revenue share. When someone mints your NFT, the full payment goes to you (minus standard Solana network fees, which are fractions of a cent). You keep what you earn.',
+  },
+  {
+    q: 'How can I support 3D Anvil?',
+    a: 'We don\'t charge platform fees — the project runs on community support. You can help by minting the Beta Supporter Edition: a limited 3D Anvil NFT (GLB) that helps fund RPC, hosting, and development. Visit the Support page for details and the mint link.',
+  },
+  {
+    q: 'Do you have an official token or plans to launch one?',
+    a: 'No. 3D Anvil has no official Solana token and we have no plans to launch one. There are no airdrops or token sales. If you want to support the project, minting the Beta Supporter Edition NFT is the only way.',
   },
   {
     q: 'Can I set royalties?',
@@ -170,7 +180,7 @@ export default function AboutPage() {
         <div className="max-w-3xl mb-16 animate-slide-up">
           <p className="text-label mb-4 animate-fade-in">Learn</p>
           <h1 className="text-headline font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-5">
-            About 3D Anvil
+            <ForgeWord text="About 3D Anvil" lineBreakAfterWordIndex={2} />
           </h1>
           <p className="text-body-lg text-gray-500 dark:text-gray-400 max-w-2xl">
             Everything you need to know — what 3D Anvil is, how it works, the
@@ -673,6 +683,41 @@ export default function AboutPage() {
                   resilient the whole ecosystem becomes.
                 </p>
               </div>
+            </section>
+
+            {/* Support the Project */}
+            <section id="support">
+              <h2 className="text-title font-bold text-gray-900 dark:text-gray-100 tracking-tight mb-6">
+                Support the Project
+              </h2>
+              <div className="space-y-4 text-body text-gray-600 dark:text-gray-400 leading-relaxed mb-8">
+                <p>
+                  3D Anvil charges no platform fees. Creators keep 100% of their
+                  sales. Running the platform — RPC, hosting, domain, and
+                  development — costs real money, and we&apos;re not VC-backed or
+                  ad-supported.
+                </p>
+                <p>
+                  If you want to help keep the forge running, you can mint the{' '}
+                  <strong className="text-gray-900 dark:text-gray-100">
+                    Beta Supporter Edition
+                  </strong>
+                  : a limited 3D Anvil NFT (GLB) that funds infrastructure. It
+                  shows as a &quot;Beta Supporter&quot; badge on your profile and is
+                  the first in a collection of seasonal supporter drops.
+                </p>
+                <p>
+                  We don&apos;t have an official Solana token and have no plans
+                  to launch one — no airdrops, no token sales. Minting the
+                  supporter NFT is the only way to support the project.
+                </p>
+              </div>
+              <Link
+                href="/support"
+                className="btn-forge-cta inline-flex items-center gap-2"
+              >
+                Support 3D Anvil
+              </Link>
             </section>
 
             {/* Who's Behind */}

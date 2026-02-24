@@ -11,6 +11,7 @@ const baseLinks = [
   { href: '/', label: 'Home' },
   { href: '/create', label: 'Create' },
   { href: '/about', label: 'About' },
+  { href: '/support', label: 'Support' },
 ];
 
 export function Navbar() {
@@ -31,7 +32,8 @@ export function Navbar() {
   const isActive = (href: string) =>
     pathname === href ||
     (href === '/create' && pathname.startsWith('/create')) ||
-    (href === '/about' && pathname.startsWith('/about'));
+    (href === '/about' && pathname.startsWith('/about')) ||
+    (href === '/support' && pathname.startsWith('/support'));
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-[var(--background)]/98 dark:bg-[#0d0c0a]/98 backdrop-blur-md border-b border-gray-300/50 dark:border-gray-700/50">

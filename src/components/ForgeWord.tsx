@@ -2,29 +2,37 @@
 
 import { Fragment, useEffect, useMemo, useState } from 'react';
 
-const FULL_TEXT = 'Forge 3D Assets On Solana';
+const DEFAULT_TEXT = 'Forge 3D Assets On Solana';
+
+/** Index after which we break to a new line (0 = after first word: "Forge" / "3D Assets On Solana") */
+const DEFAULT_LINE_BREAK_AFTER_WORD_INDEX = 2;
 
 /** Milliseconds between hammer strikes. Lower = more frequent (e.g. 1500). Higher = less (e.g. 3500). */
 const STRIKE_INTERVAL_MS = 2000;
 
-/** Index after which we break to a new line (after "Assets" -> line 2: "On Solana") */
-const LINE_BREAK_AFTER_WORD_INDEX = 2;
+export interface ForgeWordProps {
+  /** Phrase to display with forge letter effects (default: "Forge 3D Assets On Solana") */
+  text?: string;
+  /** Word index after which to break to line 2 (0 = first word on line 1, rest on line 2). Default 2 for "Forge 3D Assets" / "On Solana". */
+  lineBreakAfterWordIndex?: number;
+}
 
-export function ForgeWord() {
+export function ForgeWord({ text = DEFAULT_TEXT, lineBreakAfterWordIndex = DEFAULT_LINE_BREAK_AFTER_WORD_INDEX }: ForgeWordProps = {}) {
   const [struckIndex, setStruckIndex] = useState<number | null>(null);
 
   const wordList = useMemo(() => {
-    const words = FULL_TEXT.split(/\s+/);
+    const words = text.split(/\s+/).filter(Boolean);
     let index = 0;
     return words.map((word) => {
       const startIndex = index;
       index += word.length + 1; // +1 for space after word
       return { word, startIndex };
     });
-  }, []);
+  }, [text]);
 
-  const line1Words = useMemo(() => wordList.slice(0, LINE_BREAK_AFTER_WORD_INDEX + 1), [wordList]);
-  const line2Words = useMemo(() => wordList.slice(LINE_BREAK_AFTER_WORD_INDEX + 1), [wordList]);
+  const safeLineBreak = Math.min(Math.max(0, lineBreakAfterWordIndex), wordList.length - 1);
+  const line1Words = useMemo(() => wordList.slice(0, safeLineBreak + 1), [wordList, safeLineBreak]);
+  const line2Words = useMemo(() => wordList.slice(safeLineBreak + 1), [wordList, safeLineBreak]);
 
   const nonSpaceIndices = useMemo(() => {
     const indices: number[] = [];
@@ -103,10 +111,14 @@ export function ForgeWord() {
       <span className="forge-line forge-line-1">
         {line1Words.map(({ word, startIndex }, wi) => renderWord(wi, word, startIndex, wi === line1Words.length - 1))}
       </span>
-      <span className="forge-line-gap" aria-hidden />
-      <span className="forge-line forge-line-2">
-        {line2Words.map(({ word, startIndex }, wi) => renderWord(LINE_BREAK_AFTER_WORD_INDEX + 1 + wi, word, startIndex, wi === line2Words.length - 1))}
-      </span>
+      {line2Words.length > 0 && (
+        <>
+          <span className="forge-line-gap" aria-hidden />
+          <span className="forge-line forge-line-2">
+            {line2Words.map(({ word, startIndex }, wi) => renderWord(safeLineBreak + 1 + wi, word, startIndex, wi === line2Words.length - 1))}
+          </span>
+        </>
+      )}
     </span>
   );
 }
